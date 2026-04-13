@@ -215,7 +215,7 @@ export default function MovieDetailScreen() {
                     </View>
                 </View>
 
-                <View className="px-4">
+                <View className="px-4 -mt-[42px]">
                     {/* Title */}
                     <View className="ml-28">
                         <Text className="text-xl font-bold text-white" numberOfLines={3}>

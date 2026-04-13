@@ -134,32 +134,34 @@ export default function SearchScreen() {
   return (
     <View className="flex-1 bg-primary pt-14">
       {/* Filter selector */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        className="px-4 mb-4"
-        contentContainerStyle={{ gap: 8 }}
-      >
-        {(['all', 'tv', 'movie'] as FilterType[]).map(filterOption => (
-          <TouchableOpacity
-            key={filterOption}
-            onPress={() => setFilter(filterOption)}
-            activeOpacity={0.8}
-            className={`flex-row items-center gap-2 px-3 py-1 rounded-full flex-shrink-0 ${filter === filterOption ? 'bg-accent' : 'bg-dark-100'
-              }`}
-          >
-            <Film size={16} color={filter === filterOption ? '#030014' : '#AB8BFF'} strokeWidth={2} />
-            <Text
-              className={`text-sm font-medium ${filter === filterOption
-                ? 'text-primary'
-                : 'text-light-200'
+      <View style={{ height: 36, marginBottom: 16, paddingHorizontal: 16 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8 }}
+        >
+          {(['all', 'tv', 'movie'] as FilterType[]).map(filterOption => (
+            <TouchableOpacity
+              key={filterOption}
+              onPress={() => setFilter(filterOption)}
+              activeOpacity={0.8}
+              style={{ height: 36, justifyContent: 'center' }}
+              className={`flex-row items-center gap-2 px-3 py-0 rounded-full flex-shrink-0 ${filter === filterOption ? 'bg-accent' : 'bg-dark-100'
                 }`}
             >
-              {filterOption === 'all' ? 'All' : filterOption === 'tv' ? 'TV & Anime' : 'Movies'}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              <Film size={16} color={filter === filterOption ? '#030014' : '#AB8BFF'} strokeWidth={2} />
+              <Text
+                className={`text-sm font-medium ${filter === filterOption
+                  ? 'text-primary'
+                  : 'text-light-200'
+                  }`}
+              >
+                {filterOption === 'all' ? 'All' : filterOption === 'tv' ? 'TV & Anime' : 'Movies'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Search bar */}
       <View className="px-4 mb-4">

@@ -1,7 +1,7 @@
-import { create } from 'zustand';
 import { supabase } from '@/services/supabase';
-import { useWatchlistStore } from './useWatchlistStore';
 import type { MediaType, ProgressEntry } from '@/types';
+import { create } from 'zustand';
+import { useWatchlistStore } from './useWatchlistStore';
 
 interface ProgressState {
   // key = `${mediaId}-${mediaType}`
