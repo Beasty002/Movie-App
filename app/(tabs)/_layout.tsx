@@ -1,12 +1,13 @@
 import { Tabs } from 'expo-router';
-import { Bookmark, Home, Search, User } from 'lucide-react-native';
+import { BarChart2, Bookmark, Home, Search, User } from 'lucide-react-native';
 import { View } from 'react-native';
 
 interface TabIconProps {
   focused: boolean;
+  icon: React.ComponentType<{ size: number; strokeWidth: number; color: string; style?: object }>;
 }
 
-const TabIcon = ({ focused, icon: Icon }: TabIconProps & { icon: any }) => {
+const TabIcon = ({ focused, icon: Icon }: TabIconProps) => {
   return (
     <View className="items-center justify-center">
       <Icon
@@ -35,7 +36,6 @@ export default function TabsLayout() {
           paddingTop: 0,
           paddingBottom: 0,
           marginTop: 10,
-
         },
         tabBarStyle: {
           position: 'absolute',
@@ -79,6 +79,16 @@ export default function TabsLayout() {
           headerShown: false,
           tabBarIcon: ({ focused }) => (
             <TabIcon focused={focused} icon={Bookmark} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="polls"
+        options={{
+          title: 'Polls',
+          headerShown: false,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon focused={focused} icon={BarChart2} />
           ),
         }}
       />

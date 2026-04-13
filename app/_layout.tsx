@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/store/useAuthStore';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import * as Linking from 'expo-linking';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { Text, View } from 'react-native';
@@ -9,7 +10,7 @@ import './globals.css';
 const queryClient = new QueryClient();
 
 const toastConfig = {
-  success: (props: any) => (
+  success: (props: { text1?: string }) => (
     <View
       className="mx-4 bg-black/60 border border-green-500/60 rounded-lg px-4 py-3 flex-row items-center gap-3"
       style={{
@@ -23,7 +24,7 @@ const toastConfig = {
       </View>
     </View>
   ),
-  error: (props: any) => (
+  error: (props: { text1?: string }) => (
     <View
       className="mx-4 bg-black/60 border border-red-500/60 rounded-lg px-4 py-3 flex-row items-center gap-3"
       style={{
@@ -63,15 +64,53 @@ function AuthGate() {
   return null;
 }
 
+function DeepLinkHandler() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Handle deep links when app is already open
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      const parsed = Linking.parse(url);
+      // votch://poll/{shareCode} → navigate to /poll/{shareCode}
+      if (parsed.scheme === 'votch' && parsed.path?.startsWith('poll/')) {
+        const shareCode = parsed.path.replace('poll/', '');
+        if (shareCode) {
+          router.push(`/poll/${shareCode}` as never);
+        }
+      }
+    });
+
+    // Handle deep link that opened the app (cold start)
+    Linking.getInitialURL().then((url) => {
+      if (!url) return;
+      const parsed = Linking.parse(url);
+      if (parsed.scheme === 'votch' && parsed.path?.startsWith('poll/')) {
+        const shareCode = parsed.path.replace('poll/', '');
+        if (shareCode) {
+          router.push(`/poll/${shareCode}` as never);
+        }
+      }
+    });
+
+    return () => subscription.remove();
+  }, [router]);
+
+  return null;
+}
+
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthGate />
+      <DeepLinkHandler />
       <Stack>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="movie/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="drama/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="poll/create" options={{ headerShown: false }} />
+        <Stack.Screen name="poll/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="poll/history" options={{ headerShown: false }} />
       </Stack>
       <Toast config={toastConfig} position="bottom" bottomOffset={60} />
     </QueryClientProvider>

@@ -9,8 +9,10 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import { ChevronRight } from 'lucide-react-native';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useWatchlistStore } from '@/store/useWatchlistStore';
+import { usePollStore } from '@/store/usePollStore';
 import { supabase } from '@/services/supabase';
 import type { Profile } from '@/types';
 
@@ -47,13 +49,60 @@ function StatBlock({ value, label }: StatBlockProps) {
   );
 }
 
+function Divider() {
+  return <View className="w-px bg-dark-200 self-stretch" />;
+}
+
+interface ActionRowProps {
+  label: string;
+  onPress: () => void;
+  destructive?: boolean;
+  loading?: boolean;
+}
+
+function ActionRow({ label, onPress, destructive = false, loading = false }: ActionRowProps) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      disabled={loading}
+      className={`flex-row items-center rounded-xl px-4 py-4 ${
+        destructive
+          ? 'bg-red-500/10 border border-red-500/30'
+          : 'bg-dark-100'
+      }`}
+    >
+      {loading ? (
+        <ActivityIndicator color={destructive ? '#EF4444' : '#AB8BFF'} size="small" />
+      ) : (
+        <>
+          <Text
+            className={`text-base flex-1 ${
+              destructive ? 'text-red-400 font-medium' : 'text-white'
+            }`}
+          >
+            {label}
+          </Text>
+          {!destructive && (
+            <ChevronRight size={16} color="#A8B5DB" strokeWidth={2} />
+          )}
+        </>
+      )}
+    </TouchableOpacity>
+  );
+}
+
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, signOut, isLoading: authLoading } = useAuthStore();
   const { items, fetchWatchlist } = useWatchlistStore();
+  const { myPolls, fetchMyPolls } = usePollStore();
 
   useEffect(() => {
-    if (user) fetchWatchlist(user.id);
+    if (user) {
+      fetchWatchlist(user.id);
+      fetchMyPolls(user.id);
+    }
   }, [user]);
 
   const { data: profile, isLoading: profileLoading } = useQuery<Profile | null>({
@@ -83,11 +132,15 @@ export default function ProfileScreen() {
     ]);
   };
 
-  // Stats
+  // Watchlist stats
   const totalTracked = items.length;
   const watching = items.filter((i) => i.status === 'watching').length;
   const completed = items.filter((i) => i.status === 'completed').length;
   const episodesWatched = items.reduce((sum, i) => sum + i.episodes_watched, 0);
+
+  // Poll stats
+  const pollsCreated = myPolls.length;
+  const totalVoters = myPolls.reduce((sum, p) => sum + p.total_votes, 0);
 
   if (!user) return null;
 
@@ -123,42 +176,54 @@ export default function ProfileScreen() {
         </Text>
       </View>
 
-      {/* Stats */}
-      <View className="mx-4 bg-dark-100 rounded-2xl py-4 px-2">
+      {/* Watchlist Stats */}
+      <View className="mx-4 bg-dark-100 rounded-2xl py-4 px-2 mb-3">
+        <Text className="text-light-300 text-[11px] text-center mb-3 uppercase tracking-wide">
+          Watchlist
+        </Text>
         <View className="flex-row">
-          <StatBlock value={totalTracked} label="Total Tracked" />
-          <View className="w-px bg-dark-200 self-stretch" />
+          <StatBlock value={totalTracked} label="Tracked" />
+          <Divider />
           <StatBlock value={watching} label="Watching" />
-          <View className="w-px bg-dark-200 self-stretch" />
+          <Divider />
           <StatBlock value={completed} label="Completed" />
-          <View className="w-px bg-dark-200 self-stretch" />
+          <Divider />
           <StatBlock value={episodesWatched} label="Episodes" />
         </View>
       </View>
 
-      {/* Actions */}
-      <View className="px-4 mt-6 gap-y-3">
-        <TouchableOpacity
-          onPress={() => router.push('/settings/account' as never)}
-          activeOpacity={0.8}
-          className="flex-row items-center bg-dark-100 rounded-xl px-4 py-4"
-        >
-          <Text className="text-white text-base flex-1">Edit Profile</Text>
-          <Text className="text-light-300">›</Text>
-        </TouchableOpacity>
+      {/* Poll Stats */}
+      <View className="mx-4 bg-dark-100 rounded-2xl py-4 px-2 mb-6">
+        <Text className="text-light-300 text-[11px] text-center mb-3 uppercase tracking-wide">
+          Polls
+        </Text>
+        <View className="flex-row">
+          <StatBlock value={pollsCreated} label="Polls Created" />
+          <Divider />
+          <StatBlock value={totalVoters} label="Total Voters" />
+        </View>
+      </View>
 
-        <TouchableOpacity
+      {/* Links */}
+      <View className="px-4 gap-y-3">
+        <ActionRow
+          label="Edit Profile"
+          onPress={() => router.push('/settings/account' as never)}
+        />
+        <ActionRow
+          label="My Poll History"
+          onPress={() => router.push('/poll/history' as never)}
+        />
+        <ActionRow
+          label="Settings"
+          onPress={() => router.push('/settings/index' as never)}
+        />
+        <ActionRow
+          label="Sign Out"
           onPress={handleSignOut}
-          activeOpacity={0.8}
-          disabled={authLoading}
-          className="flex-row items-center bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-4"
-        >
-          {authLoading ? (
-            <ActivityIndicator color="#EF4444" size="small" />
-          ) : (
-            <Text className="text-red-400 text-base font-medium flex-1">Sign Out</Text>
-          )}
-        </TouchableOpacity>
+          destructive
+          loading={authLoading}
+        />
       </View>
     </ScrollView>
   );

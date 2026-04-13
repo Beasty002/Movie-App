@@ -7,7 +7,7 @@ import type { TMDBDrama, WatchlistWithProgress } from '@/types';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Bell } from 'lucide-react-native';
+import { Bell, Plus } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import {
   FlatList,
@@ -15,7 +15,7 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 
 function TrendingSkeleton() {
@@ -26,7 +26,7 @@ function TrendingSkeleton() {
           <View
             style={{ width: 112, height: 160, borderRadius: 8, backgroundColor: '#221F3D' }}
           />
-          <View className="h-3 bg-dark-100 rounded mt-2 w-4/5" />
+          <View className="w-4/5 h-3 mt-2 rounded bg-dark-100" />
         </View>
       ))}
     </View>
@@ -47,7 +47,7 @@ function ContinueWatchingCard({
       : 0;
 
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.8} className="mr-3 w-32">
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8} className="w-32 mr-3">
       <ImageWithFallback
         source={posterUrl ? { uri: posterUrl } : undefined}
         style={{ width: 128, height: 185, borderRadius: 10 }}
@@ -56,9 +56,9 @@ function ContinueWatchingCard({
       <Text className="text-white text-[12px] font-medium mt-1.5" numberOfLines={1}>
         {item.media_title}
       </Text>
-      <View className="h-1 bg-dark-100 rounded-full mt-1 overflow-hidden">
+      <View className="h-1 mt-1 overflow-hidden rounded-full bg-dark-100">
         <View
-          className="h-1 bg-accent rounded-full"
+          className="h-1 rounded-full bg-accent"
           style={{ width: `${progress * 100}%` }}
         />
       </View>
@@ -109,17 +109,27 @@ export default function HomeScreen() {
       }
     >
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 pt-14 pb-4">
-        <Text className="text-white font-bold text-2xl tracking-wide">Votch</Text>
-        <TouchableOpacity className="w-9 h-9 items-center justify-center">
-          <Bell size={22} color="#AB8BFF" strokeWidth={2} />
-        </TouchableOpacity>
+      <View className="flex-row items-center justify-between px-4 pb-4 pt-14">
+        <Text className="text-2xl font-bold tracking-wide text-white">Votch</Text>
+        <View className="flex-row items-center gap-x-3">
+          <TouchableOpacity
+            onPress={() => router.push('/poll/create' as never)}
+            activeOpacity={0.8}
+            className="flex-row items-center gap-x-1 bg-accent/15 px-3 py-1.5 rounded-lg"
+          >
+            <Plus size={14} color="#AB8BFF" strokeWidth={2.5} />
+            <Text className="text-xs font-semibold text-accent">Poll</Text>
+          </TouchableOpacity>
+          <TouchableOpacity className="items-center justify-center w-9 h-9">
+            <Bell size={22} color="#AB8BFF" strokeWidth={2} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Continue Watching */}
       {watching.length > 0 && (
         <View className="mb-6">
-          <Text className="text-white font-semibold text-base px-4 mb-3">
+          <Text className="px-4 mb-3 text-base font-semibold text-white">
             Continue Watching
           </Text>
           <FlatList<WatchlistWithProgress>
@@ -140,7 +150,7 @@ export default function HomeScreen() {
 
       {/* Trending Shows */}
       <View className="mb-6">
-        <Text className="text-white font-semibold text-base px-4 mb-3">
+        <Text className="px-4 mb-3 text-base font-semibold text-white">
           Trending Now
         </Text>
         {trendingLoading ? (
@@ -167,7 +177,7 @@ export default function HomeScreen() {
             scrollEventThrottle={16}
             ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
             ListEmptyComponent={
-              <Text className="text-light-300 text-sm px-4">Nothing trending right now</Text>
+              <Text className="px-4 text-sm text-light-300">Nothing trending right now</Text>
             }
           />
         )}
@@ -176,7 +186,7 @@ export default function HomeScreen() {
       {/* Recently Added */}
       {recentlyAdded.length > 0 && (
         <View className="px-4">
-          <Text className="text-white font-semibold text-base mb-3">
+          <Text className="mb-3 text-base font-semibold text-white">
             Recently Added to My List
           </Text>
           {recentlyAdded.map((item) => (
@@ -187,10 +197,9 @@ export default function HomeScreen() {
                 router.push(route);
               }}
               activeOpacity={0.8}
-              className="flex-row items-center bg-dark-100 rounded-xl p-3 mb-4"
+              className="flex-row items-center p-3 mb-4 bg-dark-100 rounded-xl"
             >
               <Image
-                sourWithFallback
                 source={item.media_poster ? { uri: getImageUrl(item.media_poster, 'w300') ?? '' } : undefined}
                 style={{ width: 44, height: 64, borderRadius: 6 }}
                 contentFit="cover"
@@ -223,7 +232,7 @@ export default function HomeScreen() {
             onPress={() => router.push('/search')}
             activeOpacity={0.8}
           >
-            <Text className="text-white font-semibold text-base mb-1 mt-3">
+            <Text className="mt-3 mb-1 text-base font-semibold text-white">
               Start Your Watchlist
             </Text>
             <Text className="text-light-300 text-[13px] text-center">

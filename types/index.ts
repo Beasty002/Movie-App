@@ -106,3 +106,55 @@ export interface Profile {
   avatar_url: string | null;
   created_at: string;
 }
+
+// ─── Poll types ───────────────────────────────────────────────────────────────
+export interface PollOption {
+  index: number;
+  media_id: number;
+  media_type: MediaType;
+  title: string;
+  title_korean: string | null;
+  poster: string | null;
+  year: number | null;
+}
+
+export interface Poll {
+  id: string;
+  creator_id: string | null;
+  title: string;
+  description: string | null;
+  options: PollOption[];
+  expiry_duration: '12h' | '24h' | '48h' | '1w';
+  expires_at: string;
+  is_active: boolean;
+  share_code: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PollVote {
+  id: string;
+  poll_id: string;
+  voter_id: string | null;
+  guest_email: string | null;
+  guest_identifier: string | null;
+  option_index: number;
+  created_at: string;
+}
+
+export interface PollWithResults extends Poll {
+  total_votes: number;
+  votes_by_option: Record<number, number>;
+  user_vote: number | null;
+}
+
+export interface PollListItem {
+  id: string;
+  title: string;
+  share_code: string;
+  expires_at: string;
+  is_active: boolean;
+  total_votes: number;
+  created_at: string;
+  options: PollOption[];
+}
