@@ -1,3 +1,9 @@
+import WatchlistCard from '@/components/watchlist/WatchlistCard';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useWatchlistStore } from '@/store/useWatchlistStore';
+import type { WatchlistStatus, WatchlistWithProgress } from '@/types';
+import { useRouter } from 'expo-router';
+import { Check, Film } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -9,14 +15,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useAuthStore } from '@/store/useAuthStore';
-import { useWatchlistStore } from '@/store/useWatchlistStore';
-import WatchlistCard from '@/components/watchlist/WatchlistCard';
-import type { WatchlistStatus, WatchlistWithProgress } from '@/types';
+import Toast from 'react-native-toast-message';
 
 type FilterTab = 'all' | WatchlistStatus;
 type SortKey = 'recent_added' | 'recent_updated' | 'title_az';
+type MediaTypeFilter = 'all' | 'kdrama' | 'anime' | 'movie';
 
 const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -24,6 +27,13 @@ const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: 'planning', label: 'Planning' },
   { key: 'completed', label: 'Completed' },
   { key: 'dropped', label: 'Dropped' },
+];
+
+const MEDIA_TYPE_FILTERS: { key: MediaTypeFilter; label: string }[] = [
+  { key: 'all', label: 'All Content' },
+  { key: 'kdrama', label: 'K-Dramas' },
+  { key: 'anime', label: 'Anime' },
+  { key: 'movie', label: 'Movies' },
 ];
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
@@ -57,6 +67,7 @@ export default function WatchlistScreen() {
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [activeSort, setActiveSort] = useState<SortKey>('recent_added');
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<MediaTypeFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -72,7 +83,8 @@ export default function WatchlistScreen() {
 
   const filtered =
     activeFilter === 'all' ? items : items.filter((i) => i.status === activeFilter);
-  const sorted = sortItems(filtered, activeSort);
+  const mediaFiltered = mediaTypeFilter === 'all' ? filtered : filtered.filter((i) => i.media_type === mediaTypeFilter);
+  const sorted = sortItems(mediaFiltered, activeSort);
 
   const handleLongPress = (item: WatchlistWithProgress) => {
     Alert.alert(item.media_title, 'What would you like to do?', [
@@ -84,17 +96,37 @@ export default function WatchlistScreen() {
       {
         text: 'Remove',
         style: 'destructive',
-        onPress: () => removeFromWatchlist(item.id),
+        onPress: async () => {
+          await removeFromWatchlist(item.id);
+          Toast.show({
+            type: 'success',
+            text1: 'Removed from watchlist',
+            duration: 2000,
+          });
+        },
       },
     ]);
   };
 
   const showStatusOptions = (item: WatchlistWithProgress) => {
     const options: WatchlistStatus[] = ['watching', 'planning', 'completed', 'dropped'];
+    const statusLabels = {
+      watching: 'Watching',
+      planning: 'Plan to Watch',
+      completed: 'Completed',
+      dropped: 'Dropped',
+    };
     Alert.alert('Change Status', undefined, [
       ...options.map((s) => ({
-        text: s.charAt(0).toUpperCase() + s.slice(1),
-        onPress: () => updateStatus(item.id, s),
+        text: statusLabels[s],
+        onPress: () => {
+          updateStatus(item.id, s);
+          Toast.show({
+            type: 'success',
+            text1: `Status changed to ${statusLabels[s]}`,
+            duration: 2000,
+          });
+        },
       })),
       { text: 'Cancel', style: 'cancel' as const },
     ]);
@@ -122,7 +154,7 @@ export default function WatchlistScreen() {
 
       {/* Sort dropdown */}
       {showSortMenu && (
-        <View className="mx-4 bg-dark-100 rounded-xl overflow-hidden mb-2">
+        <View className="mx-4 bg-dark-100 rounded-xl overflow-hidden mb-2 border border-accent/30">
           {SORT_OPTIONS.map((opt) => (
             <TouchableOpacity
               key={opt.key}
@@ -130,41 +162,69 @@ export default function WatchlistScreen() {
                 setActiveSort(opt.key);
                 setShowSortMenu(false);
               }}
-              className="px-4 py-3 flex-row items-center justify-between"
+              className="px-4 py-3 flex-row items-center justify-between border-b border-dark-200 last:border-b-0"
             >
               <Text className="text-white text-[13px]">{opt.label}</Text>
-              {activeSort === opt.key && <Text className="text-accent">✓</Text>}
+              {activeSort === opt.key && <Check size={18} color="#AB8BFF" strokeWidth={2} />}
             </TouchableOpacity>
           ))}
         </View>
       )}
 
-      {/* Filter tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        className="px-4"
-        contentContainerStyle={{ gap: 8, paddingBottom: 12 }}
-      >
-        {FILTER_TABS.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            onPress={() => setActiveFilter(tab.key)}
-            activeOpacity={0.8}
-            className={`px-4 py-1.5 rounded-full ${
-              activeFilter === tab.key ? 'bg-accent' : 'bg-dark-100'
-            }`}
-          >
-            <Text
-              className={`text-[13px] font-medium ${
-                activeFilter === tab.key ? 'text-primary' : 'text-light-200'
-              }`}
+      {/* Filters Row */}
+      <View className="px-4 mb-4">
+        {/* Status Label and Filter */}
+        <Text className="text-light-300 text-xs mb-2 uppercase tracking-wider">Status</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 6, paddingBottom: 8 }}
+        >
+          {FILTER_TABS.map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              onPress={() => setActiveFilter(tab.key)}
+              activeOpacity={0.8}
+              className={`px-3 py-1 rounded-lg flex-shrink-0 border ${activeFilter === tab.key ? 'bg-accent border-accent' : 'bg-dark-100 border-dark-100'
+                }`}
             >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              <Text
+                className={`text-xs font-semibold ${activeFilter === tab.key ? 'text-primary' : 'text-light-200'
+                  }`}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Media Type Filter */}
+      <View className="px-4 mb-4">
+        <Text className="text-light-300 text-xs mb-2 uppercase tracking-wider">Content Type</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 6 }}
+        >
+          {MEDIA_TYPE_FILTERS.map((filter) => (
+            <TouchableOpacity
+              key={filter.key}
+              onPress={() => setMediaTypeFilter(filter.key)}
+              activeOpacity={0.8}
+              className={`px-3 py-1 rounded-lg flex-shrink-0 border ${mediaTypeFilter === filter.key ? 'bg-accent border-accent' : 'bg-dark-100 border-dark-100'
+                }`}
+            >
+              <Text
+                className={`text-xs font-semibold ${mediaTypeFilter === filter.key ? 'text-primary' : 'text-light-200'
+                  }`}
+              >
+                {filter.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Content */}
       {isLoading && items.length === 0 ? (
@@ -178,7 +238,10 @@ export default function WatchlistScreen() {
           renderItem={({ item }) => (
             <WatchlistCard
               item={item}
-              onPress={() => router.push(`/drama/${item.media_id}`)}
+              onPress={() => {
+                const route = item.media_type === 'movie' ? `/movie/${item.media_id}` : `/drama/${item.media_id}`;
+                router.push(route);
+              }}
               onLongPress={() => handleLongPress(item)}
             />
           )}
@@ -196,10 +259,18 @@ export default function WatchlistScreen() {
           }
           ListEmptyComponent={
             <View className="flex-1 items-center justify-center pt-20">
-              <Text className="text-4xl mb-3">📺</Text>
-              <Text className="text-light-300 text-base text-center">
+              <Film size={48} color="#AB8BFF" strokeWidth={2} />
+              <Text className="text-light-300 text-base text-center mt-3">
                 {EMPTY_MESSAGES[activeFilter]}
               </Text>
+              {activeFilter === 'all' && (
+                <TouchableOpacity
+                  onPress={() => router.push('/search')}
+                  className="bg-accent px-6 py-2 rounded-lg mt-4"
+                >
+                  <Text className="text-primary font-bold">Start Exploring</Text>
+                </TouchableOpacity>
+              )}
             </View>
           }
           showsVerticalScrollIndicator={false}

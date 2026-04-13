@@ -1,3 +1,13 @@
+import ImageWithFallback from '@/components/ImageWithFallback';
+import DramaCard from '@/components/drama/DramaCard';
+import { getDramaDetail, getDramaEpisodes, getImageUrl, getRecommendedContent, getSimilarContent } from '@/services/tmdb';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useProgressStore } from '@/store/useProgressStore';
+import { useWatchlistStore } from '@/store/useWatchlistStore';
+import type { TMDBCast, TMDBDrama, TMDBEpisode, WatchlistStatus } from '@/types';
+import { useQuery } from '@tanstack/react-query';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Bookmark, Check, Play, Trash2 } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -9,20 +19,19 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Image } from 'expo-image';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
-import { getDramaDetail, getDramaEpisodes, getImageUrl } from '@/services/tmdb';
-import { useWatchlistStore } from '@/store/useWatchlistStore';
-import { useProgressStore } from '@/store/useProgressStore';
-import { useAuthStore } from '@/store/useAuthStore';
-import type { TMDBCast, TMDBEpisode, WatchlistStatus } from '@/types';
+import Toast from 'react-native-toast-message';
 
-const STATUS_OPTIONS: { value: WatchlistStatus; label: string; emoji: string }[] = [
-  { value: 'watching', label: 'Watching', emoji: '▶️' },
-  { value: 'planning', label: 'Plan to Watch', emoji: '📋' },
-  { value: 'completed', label: 'Completed', emoji: '✅' },
-  { value: 'dropped', label: 'Dropped', emoji: '🚫' },
+type StatusOption = {
+  value: WatchlistStatus;
+  label: string;
+  icon: string;
+};
+
+const STATUS_OPTIONS: StatusOption[] = [
+  { value: 'watching', label: 'Watching', icon: 'play' },
+  { value: 'planning', label: 'Plan to Watch', icon: 'bookmark' },
+  { value: 'completed', label: 'Completed', icon: 'check' },
+  { value: 'dropped', label: 'Dropped', icon: 'trash2' },
 ];
 
 const STATUS_COLORS: Record<WatchlistStatus, string> = {
@@ -32,15 +41,30 @@ const STATUS_COLORS: Record<WatchlistStatus, string> = {
   dropped: 'text-red-400',
 };
 
+function StatusIcon({ iconName }: { iconName: string }) {
+  const iconProps = { size: 20, strokeWidth: 2 };
+  switch (iconName) {
+    case 'play':
+      return <Play {...iconProps} color="#60A5FA" />;
+    case 'bookmark':
+      return <Bookmark {...iconProps} color="#9CA4AB" />;
+    case 'check':
+      return <Check {...iconProps} color="#4ADE80" />;
+    case 'trash2':
+      return <Trash2 {...iconProps} color="#F87171" />;
+    default:
+      return null;
+  }
+}
+
 function CastCard({ cast }: { cast: TMDBCast }) {
   const photoUrl = getImageUrl(cast.profile_path, 'w300');
   return (
     <View className="mr-3 w-20 items-center">
-      <Image
+      <ImageWithFallback
         source={photoUrl ? { uri: photoUrl } : undefined}
         style={{ width: 64, height: 64, borderRadius: 32 }}
         contentFit="cover"
-        placeholder={{ color: '#221F3D' }}
       />
       <Text className="text-white text-[11px] font-medium text-center mt-1" numberOfLines={2}>
         {cast.name}
@@ -56,29 +80,33 @@ function EpisodeRow({
   episode,
   watched,
   onToggle,
+  isReleased,
 }: {
   episode: TMDBEpisode;
   watched: boolean;
   onToggle: () => void;
+  isReleased: boolean;
 }) {
   return (
-    <View className="flex-row items-center py-3 border-b border-dark-100">
+    <View className={`flex-row items-center py-3 border-b border-dark-100 ${!isReleased ? 'opacity-50' : ''}`}>
       <View className="flex-1 mr-3">
-        <Text className="text-white text-[13px] font-medium">
+        <Text className={`text-[13px] font-medium ${isReleased ? 'text-white' : 'text-light-300'}`}>
           Ep {episode.episode_number} · {episode.name}
         </Text>
         {episode.air_date ? (
           <Text className="text-light-300 text-[11px] mt-0.5">{episode.air_date}</Text>
-        ) : null}
+        ) : (
+          <Text className="text-light-300 text-[11px] mt-0.5 italic">Unreleased</Text>
+        )}
       </View>
       <TouchableOpacity
         onPress={onToggle}
         activeOpacity={0.7}
-        className={`w-7 h-7 rounded-full border-2 items-center justify-center ${
-          watched ? 'bg-accent border-accent' : 'border-light-200'
-        }`}
+        disabled={!isReleased}
+        className={`w-7 h-7 rounded-full border-2 items-center justify-center ${watched && isReleased ? 'bg-accent border-accent' : isReleased ? 'border-light-200' : 'border-light-300 opacity-50'
+          }`}
       >
-        {watched ? <Text className="text-primary text-xs font-bold">✓</Text> : null}
+        {watched && isReleased ? <Check size={16} strokeWidth={3} color="#030014" /> : null}
       </TouchableOpacity>
     </View>
   );
@@ -95,6 +123,7 @@ export default function DramaDetailScreen() {
 
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [synopsisExpanded, setSynopsisExpanded] = useState(false);
+  const [selectedSeason, setSelectedSeason] = useState(1);
 
   const watchlistItem = getItemByMedia(dramaId, 'kdrama');
 
@@ -104,9 +133,21 @@ export default function DramaDetailScreen() {
   });
 
   const { data: episodes } = useQuery({
-    queryKey: ['drama', id, 'episodes', 1],
-    queryFn: () => getDramaEpisodes(dramaId, 1),
-    enabled: !!drama && (drama.number_of_seasons ?? 0) > 0,
+    queryKey: ['drama', id, 'episodes', selectedSeason],
+    queryFn: () => getDramaEpisodes(dramaId, selectedSeason),
+    enabled: !!drama && (drama.number_of_seasons ?? 0) >= selectedSeason,
+  });
+
+  const { data: similar } = useQuery({
+    queryKey: ['drama', id, 'similar'],
+    queryFn: () => getSimilarContent(dramaId, 'tv'),
+    enabled: !!drama,
+  });
+
+  const { data: recommended } = useQuery({
+    queryKey: ['drama', id, 'recommended'],
+    queryFn: () => getRecommendedContent(dramaId, 'tv'),
+    enabled: !!drama,
   });
 
   useEffect(() => {
@@ -119,10 +160,28 @@ export default function DramaDetailScreen() {
     async (episodeNumber: number) => {
       if (!user) return;
       const watched = isEpisodeWatched(dramaId, 'kdrama', episodeNumber);
-      if (watched) {
-        await unmarkEpisode(user.id, dramaId, 'kdrama', episodeNumber);
-      } else {
-        await markEpisodeWatched(user.id, dramaId, 'kdrama', episodeNumber);
+      try {
+        if (watched) {
+          await unmarkEpisode(user.id, dramaId, 'kdrama', episodeNumber);
+          Toast.show({
+            type: 'success',
+            text1: 'Episode marked as unwatched',
+            duration: 2000,
+          });
+        } else {
+          await markEpisodeWatched(user.id, dramaId, 'kdrama', episodeNumber);
+          Toast.show({
+            type: 'success',
+            text1: 'Episode marked as watched',
+            duration: 2000,
+          });
+        }
+      } catch (error) {
+        Toast.show({
+          type: 'error',
+          text1: 'Failed to update episode',
+          duration: 2000,
+        });
       }
     },
     [user, dramaId, isEpisodeWatched, markEpisodeWatched, unmarkEpisode],
@@ -133,22 +192,40 @@ export default function DramaDetailScreen() {
       if (!user || !drama) return;
       setShowStatusModal(false);
 
-      if (watchlistItem) {
-        await updateStatus(watchlistItem.id, status);
-      } else {
-        await addToWatchlist(
-          {
-            media_id: drama.id,
-            media_type: 'kdrama',
-            media_title: drama.name,
-            media_title_korean: drama.original_name ?? null,
-            media_poster: drama.poster_path,
-            media_year: drama.first_air_date ? parseInt(drama.first_air_date.split('-')[0], 10) : null,
-            total_episodes: drama.number_of_episodes ?? null,
-            status,
-          },
-          user.id,
-        );
+      try {
+        if (watchlistItem) {
+          await updateStatus(watchlistItem.id, status);
+          Toast.show({
+            type: 'success',
+            text1: `Status changed to ${status}`,
+            duration: 2000,
+          });
+        } else {
+          await addToWatchlist(
+            {
+              media_id: drama.id,
+              media_type: 'kdrama',
+              media_title: drama.name,
+              media_title_korean: drama.original_name ?? null,
+              media_poster: drama.poster_path,
+              media_year: drama.first_air_date ? parseInt(drama.first_air_date.split('-')[0], 10) : null,
+              total_episodes: drama.number_of_episodes ?? null,
+              status,
+            },
+            user.id,
+          );
+          Toast.show({
+            type: 'success',
+            text1: 'Added to watchlist',
+            duration: 2000,
+          });
+        }
+      } catch (error) {
+        Toast.show({
+          type: 'error',
+          text1: 'Failed to update watchlist',
+          duration: 2000,
+        });
       }
     },
     [user, drama, watchlistItem, addToWatchlist, updateStatus],
@@ -161,7 +238,22 @@ export default function DramaDetailScreen() {
       {
         text: 'Remove',
         style: 'destructive',
-        onPress: () => removeFromWatchlist(watchlistItem.id),
+        onPress: async () => {
+          try {
+            await removeFromWatchlist(watchlistItem.id);
+            Toast.show({
+              type: 'success',
+              text1: 'Removed from watchlist',
+              duration: 2000,
+            });
+          } catch (error) {
+            Toast.show({
+              type: 'error',
+              text1: 'Failed to remove',
+              duration: 2000,
+            });
+          }
+        },
       },
     ]);
   }, [watchlistItem, removeFromWatchlist]);
@@ -202,11 +294,10 @@ export default function DramaDetailScreen() {
       >
         {/* Backdrop + poster overlap */}
         <View style={{ height: 270 }}>
-          <Image
+          <ImageWithFallback
             source={backdropUrl ? { uri: backdropUrl } : undefined}
             style={{ width: '100%', height: 220 }}
             contentFit="cover"
-            placeholder={{ color: '#221F3D' }}
           />
           {/* Back button */}
           <TouchableOpacity
@@ -218,11 +309,10 @@ export default function DramaDetailScreen() {
 
           {/* Poster */}
           <View className="absolute left-4" style={{ bottom: 0 }}>
-            <Image
+            <ImageWithFallback
               source={posterUrl ? { uri: posterUrl } : undefined}
               style={{ width: 90, height: 130, borderRadius: 10 }}
               contentFit="cover"
-              placeholder={{ color: '#221F3D' }}
             />
           </View>
         </View>
@@ -296,17 +386,19 @@ export default function DramaDetailScreen() {
                   activeOpacity={0.8}
                   className="flex-1 border border-accent rounded-xl py-3 items-center"
                 >
-                  <Text className={`font-semibold text-[14px] ${STATUS_COLORS[watchlistItem.status]}`}>
-                    {STATUS_OPTIONS.find((o) => o.value === watchlistItem.status)?.emoji}{' '}
-                    {STATUS_OPTIONS.find((o) => o.value === watchlistItem.status)?.label}
-                  </Text>
+                  <View className="flex-row items-center gap-x-2">
+                    <StatusIcon iconName={STATUS_OPTIONS.find((o) => o.value === watchlistItem.status)?.icon ?? 'play'} />
+                    <Text className={`font-semibold text-[14px] ${STATUS_COLORS[watchlistItem.status]}`}>
+                      {STATUS_OPTIONS.find((o) => o.value === watchlistItem.status)?.label}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleRemove}
                   activeOpacity={0.8}
                   className="border border-red-500/50 px-4 rounded-xl items-center justify-center"
                 >
-                  <Text className="text-red-400 text-base">🗑</Text>
+                  <Trash2 size={20} strokeWidth={2} color="#F87171" />
                 </TouchableOpacity>
               </>
             ) : (
@@ -356,17 +448,73 @@ export default function DramaDetailScreen() {
           {/* Episodes */}
           {episodes && episodes.length > 0 && (
             <View className="mt-5">
-              <Text className="text-white font-semibold text-base mb-1">
-                Episodes · Season 1
-              </Text>
-              {episodes.map((ep: TMDBEpisode) => (
-                <EpisodeRow
-                  key={ep.id}
-                  episode={ep}
-                  watched={isEpisodeWatched(dramaId, 'kdrama', ep.episode_number)}
-                  onToggle={() => handleToggleEpisode(ep.episode_number)}
-                />
-              ))}
+              <View className="flex-row items-center justify-between mb-3">
+                <Text className="text-white font-semibold text-base">
+                  Episodes
+                </Text>
+                {drama && drama.number_of_seasons && drama.number_of_seasons > 1 && (
+                  <View className="flex-row gap-x-2">
+                    {Array.from({ length: drama.number_of_seasons }, (_, i) => i + 1).map(
+                      (season) => (
+                        <TouchableOpacity
+                          key={season}
+                          onPress={() => setSelectedSeason(season)}
+                          className={`px-3 py-1 rounded-full ${selectedSeason === season ? 'bg-accent' : 'bg-dark-100'
+                            }`}
+                        >
+                          <Text
+                            className={`text-[12px] font-medium ${selectedSeason === season ? 'text-primary' : 'text-light-200'
+                              }`}
+                          >
+                            S{season}
+                          </Text>
+                        </TouchableOpacity>
+                      )
+                    )}
+                  </View>
+                )}
+              </View>
+              {episodes.map((ep: TMDBEpisode) => {
+                const isReleased = !!ep.air_date;
+                return (
+                  <EpisodeRow
+                    key={ep.id}
+                    episode={ep}
+                    watched={isEpisodeWatched(dramaId, 'kdrama', ep.episode_number)}
+                    onToggle={() => {
+                      if (isReleased) handleToggleEpisode(ep.episode_number);
+                    }}
+                    isReleased={isReleased}
+                  />
+                );
+              })}
+            </View>
+          )}
+
+          {/* Recommended For You */}
+          {recommended && recommended.length > 0 && (
+            <View className="mt-6">
+              <Text className="text-white font-semibold text-base mb-3">Recommended For You</Text>
+              <FlatList<TMDBDrama>
+                data={recommended.slice(0, 10)}
+                keyExtractor={(item) => `recommended-${item.id}`}
+                renderItem={({ item }) => (
+                  <View className="mr-3">
+                    <DramaCard
+                      drama={item}
+                      compact
+                      onPress={() => {
+                        const route = item.media_type === 'movie' ? `/movie/${item.id}` : `/drama/${item.id}`;
+                        router.push(route);
+                      }}
+                    />
+                  </View>
+                )}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                scrollEnabled
+                contentContainerStyle={{ paddingRight: 16 }}
+              />
             </View>
           )}
         </View>
@@ -393,20 +541,21 @@ export default function DramaDetailScreen() {
                 key={option.value}
                 onPress={() => handleAddOrUpdate(option.value)}
                 activeOpacity={0.8}
-                className={`flex-row items-center py-4 border-b border-dark-200 ${
-                  watchlistItem?.status === option.value ? 'opacity-100' : 'opacity-80'
-                }`}
+                className={`flex-row items-center py-4 border-b border-dark-200 ${watchlistItem?.status === option.value ? 'opacity-100' : 'opacity-80'
+                  }`}
               >
-                <Text className="text-2xl mr-3">{option.emoji}</Text>
+                <View className="mr-3">
+                  <StatusIcon iconName={option.icon} />
+                </View>
                 <Text className="text-white text-base flex-1">{option.label}</Text>
                 {watchlistItem?.status === option.value && (
-                  <Text className="text-accent">✓</Text>
+                  <Check size={20} strokeWidth={2} color="#AB8BFF" />
                 )}
               </TouchableOpacity>
             ))}
           </View>
         </TouchableOpacity>
-      </Modal>
+      </Modal >
     </>
   );
 }

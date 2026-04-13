@@ -1,22 +1,22 @@
-import { useEffect } from 'react';
+import DramaCard from '@/components/drama/DramaCard';
+import ImageWithFallback from '@/components/ImageWithFallback';
+import { getImageUrl, getTrending } from '@/services/tmdb';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useWatchlistStore } from '@/store/useWatchlistStore';
+import type { TMDBDrama, WatchlistWithProgress } from '@/types';
+import { useQuery } from '@tanstack/react-query';
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
+import { Bell } from 'lucide-react-native';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   RefreshControl,
   ScrollView,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
-import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
-import { getTrending, getImageUrl } from '@/services/tmdb';
-import { useAuthStore } from '@/store/useAuthStore';
-import { useWatchlistStore } from '@/store/useWatchlistStore';
-import DramaCard from '@/components/drama/DramaCard';
-import type { TMDBDrama, WatchlistWithProgress } from '@/types';
-import { useState, useCallback } from 'react';
 
 function TrendingSkeleton() {
   return (
@@ -48,11 +48,10 @@ function ContinueWatchingCard({
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} className="mr-3 w-32">
-      <Image
+      <ImageWithFallback
         source={posterUrl ? { uri: posterUrl } : undefined}
         style={{ width: 128, height: 185, borderRadius: 10 }}
         contentFit="cover"
-        placeholder={{ color: '#221F3D' }}
       />
       <Text className="text-white text-[12px] font-medium mt-1.5" numberOfLines={1}>
         {item.media_title}
@@ -113,7 +112,7 @@ export default function HomeScreen() {
       <View className="flex-row items-center justify-between px-4 pt-14 pb-4">
         <Text className="text-white font-bold text-2xl tracking-wide">Votch</Text>
         <TouchableOpacity className="w-9 h-9 items-center justify-center">
-          <Text className="text-2xl">🔔</Text>
+          <Bell size={22} color="#AB8BFF" strokeWidth={2} />
         </TouchableOpacity>
       </View>
 
@@ -139,10 +138,10 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Trending K-Dramas */}
+      {/* Trending Shows */}
       <View className="mb-6">
         <Text className="text-white font-semibold text-base px-4 mb-3">
-          Trending K-Dramas
+          Trending Now
         </Text>
         {trendingLoading ? (
           <View className="px-4">
@@ -151,17 +150,22 @@ export default function HomeScreen() {
         ) : (
           <FlatList<TMDBDrama>
             data={trending ?? []}
-            keyExtractor={(item) => String(item.id)}
+            keyExtractor={(item, idx) => `${item.media_type}-${item.id}-${idx}`}
             renderItem={({ item }) => (
               <DramaCard
                 drama={item}
-                onPress={() => router.push(`/drama/${item.id}`)}
+                onPress={() => {
+                  const route = item.media_type === 'movie' ? `/movie/${item.id}` : `/drama/${item.id}`;
+                  router.push(route);
+                }}
                 compact
               />
             )}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 16 }}
+            scrollEventThrottle={16}
+            ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
             ListEmptyComponent={
               <Text className="text-light-300 text-sm px-4">Nothing trending right now</Text>
             }
@@ -178,15 +182,18 @@ export default function HomeScreen() {
           {recentlyAdded.map((item) => (
             <TouchableOpacity
               key={item.id}
-              onPress={() => router.push(`/drama/${item.media_id}`)}
+              onPress={() => {
+                const route = item.media_type === 'movie' ? `/movie/${item.media_id}` : `/drama/${item.media_id}`;
+                router.push(route);
+              }}
               activeOpacity={0.8}
-              className="flex-row items-center bg-dark-100 rounded-xl p-3 mb-2"
+              className="flex-row items-center bg-dark-100 rounded-xl p-3 mb-4"
             >
               <Image
+                sourWithFallback
                 source={item.media_poster ? { uri: getImageUrl(item.media_poster, 'w300') ?? '' } : undefined}
                 style={{ width: 44, height: 64, borderRadius: 6 }}
                 contentFit="cover"
-                placeholder={{ color: '#221F3D' }}
               />
               <View className="flex-1 ml-3">
                 <Text className="text-white text-[13px] font-medium" numberOfLines={1}>
@@ -215,10 +222,8 @@ export default function HomeScreen() {
           <TouchableOpacity
             onPress={() => router.push('/search')}
             activeOpacity={0.8}
-            className="bg-dark-100 rounded-2xl p-6 items-center"
           >
-            <Text className="text-3xl mb-2">🎬</Text>
-            <Text className="text-white font-semibold text-base mb-1">
+            <Text className="text-white font-semibold text-base mb-1 mt-3">
               Start Your Watchlist
             </Text>
             <Text className="text-light-300 text-[13px] text-center">

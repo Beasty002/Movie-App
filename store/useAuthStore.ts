@@ -39,6 +39,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (error) {
         throw error;
       }
+
+      if (data.session) {
+        set({ session: data.session, user: data.session.user });
+      }
     } catch (err) {
       const authError = err as AuthError;
       const errorMsg = authError.message;

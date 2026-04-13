@@ -104,8 +104,8 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
         },
       }));
 
-      // Auto-update watchlist: planning → watching on episode 1
-      if (episodeNumber === 1 && watchlistItem && watchlistItem.status === 'planning') {
+      // Auto-update watchlist: planning → watching when any episode is marked
+      if (watchlistItem && watchlistItem.status === 'planning') {
         await watchlistStore.updateStatus(watchlistItem.id, 'watching');
       }
     } catch (err) {

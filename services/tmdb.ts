@@ -24,7 +24,8 @@ async function fetchTMDB<T>(
   params: Record<string, string> = {},
 ): Promise<T> {
   const url = new URL(`${BASE_URL}${path}`);
-  url.searchParams.set('language', 'ko-KR');
+  url.searchParams.set('language', 'en-US');
+  url.searchParams.set('include_image_language', 'en,null');
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, v);
   }
@@ -65,16 +66,41 @@ export async function searchDramas(
   query: string,
   page = 1,
 ): Promise<TMDBSearchResponse> {
-  return fetchTMDB<TMDBSearchResponse>('/search/tv', {
+  const response = await fetchTMDB<TMDBSearchResponse>('/search/tv', {
     query: encodeURIComponent(query),
     page: String(page),
-    with_origin_country: 'KR',
   });
+  // Mark all results as TV
+  return {
+    ...response,
+    results: response.results.map(item => ({ ...item, media_type: 'tv' })),
+  };
+}
+
+export async function searchMovies(
+  query: string,
+  page = 1,
+): Promise<TMDBSearchResponse> {
+  const response = await fetchTMDB<TMDBSearchResponse>('/search/movie', {
+    query: encodeURIComponent(query),
+    page: String(page),
+  });
+  // Mark all results as movies
+  return {
+    ...response,
+    results: response.results.map(item => ({ ...item, media_type: 'movie' })),
+  };
 }
 
 export async function getDramaDetail(id: number): Promise<TMDBDrama> {
   return fetchTMDB<TMDBDrama>(`/tv/${id}`, {
     append_to_response: 'credits,seasons',
+  });
+}
+
+export async function getMovieDetail(id: number): Promise<TMDBDrama> {
+  return fetchTMDB<TMDBDrama>(`/movie/${id}`, {
+    append_to_response: 'credits',
   });
 }
 
@@ -94,8 +120,35 @@ export async function getDramaEpisodes(
 }
 
 export async function getTrending(): Promise<TMDBDrama[]> {
-  const data = await fetchTMDB<TMDBSearchResponse>('/trending/tv/week', {
-    with_origin_country: 'KR',
-  });
-  return data.results;
+  const [tvData, movieData] = await Promise.all([
+    fetchTMDB<TMDBSearchResponse>('/trending/tv/week', {}),
+    fetchTMDB<TMDBSearchResponse>('/trending/movie/week', {}),
+  ]);
+  const combined = [
+    ...tvData.results.map(item => ({ ...item, media_type: 'tv' as const })),
+    ...movieData.results.map(item => ({ ...item, media_type: 'movie' as const })),
+  ];
+  return combined.sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0)).slice(0, 20);
+}
+
+export async function getSimilarContent(
+  id: number,
+  type: 'tv' | 'movie',
+): Promise<TMDBDrama[]> {
+  const data = await fetchTMDB<TMDBSearchResponse>(`/${type}/${id}/similar`, {});
+  return data.results.map(item => ({
+    ...item,
+    media_type: type,
+  }));
+}
+
+export async function getRecommendedContent(
+  id: number,
+  type: 'tv' | 'movie',
+): Promise<TMDBDrama[]> {
+  const data = await fetchTMDB<TMDBSearchResponse>(`/${type}/${id}/recommendations`, {});
+  return data.results.map(item => ({
+    ...item,
+    media_type: type,
+  }));
 }

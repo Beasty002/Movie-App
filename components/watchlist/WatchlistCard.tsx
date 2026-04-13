@@ -1,7 +1,7 @@
-import { Image } from 'expo-image';
-import { View, Text, TouchableOpacity } from 'react-native';
-import type { WatchlistStatus, WatchlistWithProgress } from '@/types';
+import ImageWithFallback from '@/components/ImageWithFallback';
 import { getImageUrl } from '@/services/tmdb';
+import type { WatchlistStatus, WatchlistWithProgress } from '@/types';
+import { Text, TouchableOpacity, View } from 'react-native';
 
 interface WatchlistCardProps {
   item: WatchlistWithProgress;
@@ -41,11 +41,10 @@ export default function WatchlistCard({ item, onPress, onLongPress }: WatchlistC
       activeOpacity={0.8}
       className="flex-row bg-dark-100 rounded-xl p-3 mb-3"
     >
-      <Image
+      <ImageWithFallback
         source={posterUrl ? { uri: posterUrl } : undefined}
         style={{ width: 60, height: 90, borderRadius: 8 }}
         contentFit="cover"
-        placeholder={{ color: '#221F3D' }}
       />
 
       <View className="flex-1 ml-3 justify-between py-0.5">

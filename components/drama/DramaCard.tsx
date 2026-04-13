@@ -1,7 +1,9 @@
-import { Image } from 'expo-image';
-import { TouchableOpacity, View, Text } from 'react-native';
-import type { TMDBDrama, WatchlistStatus } from '@/types';
+import { icons } from '@/constants/icons';
 import { getImageUrl } from '@/services/tmdb';
+import type { TMDBDrama, WatchlistStatus } from '@/types';
+import { Image } from 'expo-image';
+import { Text, TouchableOpacity, View } from 'react-native';
+import ImageWithFallback from '../ImageWithFallback';
 
 interface DramaCardProps {
   drama: TMDBDrama;
@@ -38,20 +40,22 @@ function StatusBadge({ status }: { status: WatchlistStatus }) {
 
 export default function DramaCard({ drama, onPress, showStatus, status, compact }: DramaCardProps) {
   const posterUrl = getImageUrl(drama.poster_path, 'w300');
-  const year = drama.first_air_date ? drama.first_air_date.split('-')[0] : '';
+  const title = drama.name || drama.title || '';
+  const originalTitle = drama.original_name || drama.original_title || '';
+  const airDate = drama.first_air_date || drama.release_date || '';
+  const year = airDate ? airDate.split('-')[0] : '';
   const rating = drama.vote_average ? drama.vote_average.toFixed(1) : '–';
 
   if (compact) {
     return (
       <TouchableOpacity onPress={onPress} activeOpacity={0.8} className="mr-3 w-28">
-        <Image
+        <ImageWithFallback
           source={posterUrl ? { uri: posterUrl } : undefined}
           style={{ width: 112, height: 160, borderRadius: 8 }}
           contentFit="cover"
-          placeholder={{ color: '#221F3D' }}
         />
         <Text className="text-white text-xs font-medium mt-1.5" numberOfLines={2}>
-          {drama.name}
+          {title}
         </Text>
         <Text className="text-light-300 text-[11px] mt-0.5">{year}</Text>
       </TouchableOpacity>
@@ -71,20 +75,19 @@ export default function DramaCard({ drama, onPress, showStatus, status, compact 
       activeOpacity={0.8}
       className="flex-row p-3 mb-3 bg-dark-100 rounded-xl"
     >
-      <Image
+      <ImageWithFallback
         source={posterUrl ? { uri: posterUrl } : undefined}
         style={{ width: 70, height: 100, borderRadius: 8 }}
         contentFit="cover"
-        placeholder={{ color: '#221F3D' }}
       />
 
       <View className="flex-1 ml-3 justify-between py-0.5">
         <View>
           <Text className="text-white font-bold text-[15px]" numberOfLines={2}>
-            {drama.name}
+            {title}
           </Text>
           <Text className="text-light-200 text-[13px] mt-0.5" numberOfLines={1}>
-            {drama.original_name}
+            {originalTitle}
           </Text>
         </View>
 
@@ -95,7 +98,7 @@ export default function DramaCard({ drama, onPress, showStatus, status, compact 
 
           <View className="flex-row items-center mt-1.5 gap-x-2">
             <View className="flex-row items-center gap-x-0.5">
-              <Text className="text-accent text-[12px]">★</Text>
+              <Image source={icons.star} style={{ width: 14, height: 14 }} tintColor="#AB8BFF" />
               <Text className="text-light-200 text-[12px] ml-0.5">{rating}</Text>
             </View>
             {showStatus && status ? <StatusBadge status={status} /> : null}

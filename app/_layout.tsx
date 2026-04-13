@@ -1,10 +1,41 @@
-import { useEffect } from 'react';
-import { Stack, useRouter, useSegments } from 'expo-router';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/useAuthStore';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { useEffect } from 'react';
+import { Text, View } from 'react-native';
+import Toast from 'react-native-toast-message';
 import './globals.css';
 
 const queryClient = new QueryClient();
+
+const toastConfig = {
+  success: (props: any) => (
+    <View
+      className="mx-4 bg-green-500/20 border border-green-500 rounded-lg px-4 py-3 flex-row items-center gap-3"
+      style={{
+        marginBottom: 20,
+      }}
+    >
+      <Text className="text-green-400 text-xl">✓</Text>
+      <View className="flex-1">
+        <Text className="text-green-400 font-semibold text-sm">{props.text1}</Text>
+      </View>
+    </View>
+  ),
+  error: (props: any) => (
+    <View
+      className="mx-4 bg-red-500/20 border border-red-500 rounded-lg px-4 py-3 flex-row items-center gap-3"
+      style={{
+        marginBottom: 20,
+      }}
+    >
+      <Text className="text-red-400 text-xl">✕</Text>
+      <View className="flex-1">
+        <Text className="text-red-400 font-semibold text-sm">{props.text1}</Text>
+      </View>
+    </View>
+  ),
+};
 
 function AuthGate() {
   const { session, isInitialized, initialize } = useAuthStore();
@@ -40,6 +71,7 @@ export default function RootLayout() {
         <Stack.Screen name="movie/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="drama/[id]" options={{ headerShown: false }} />
       </Stack>
+      <Toast config={toastConfig} position="bottom" bottomOffset={60} />
     </QueryClientProvider>
   );
 }

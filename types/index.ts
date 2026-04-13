@@ -5,22 +5,26 @@ export type WatchlistStatus = 'planning' | 'watching' | 'completed' | 'dropped';
 // ─── TMDB API types ──────────────────────────────────────────────────────────
 export interface TMDBDrama {
   id: number;
-  name: string;
-  original_name: string;
+  name?: string;
+  title?: string;
+  original_name?: string;
+  original_title?: string;
   overview: string;
   poster_path: string | null;
   backdrop_path: string | null;
-  first_air_date: string;
+  first_air_date?: string;
+  release_date?: string;
   vote_average: number;
   vote_count: number;
   genre_ids: number[];
-  origin_country: string[];
+  origin_country?: string[];
   number_of_episodes?: number;
   number_of_seasons?: number;
   status?: string;
   networks?: { id: number; name: string; logo_path: string }[];
   genres?: { id: number; name: string }[];
   credits?: { cast: TMDBCast[] };
+  media_type?: 'tv' | 'movie';
 }
 
 export interface TMDBCast {
