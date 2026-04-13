@@ -140,6 +140,21 @@ export default function SearchScreen() {
     staleTime: 2 * 60 * 1000,
   });
 
+  // Trending content for initial display
+  const { data: trendingTvData, isLoading: trendingTvLoading } = useQuery({
+    queryKey: ['trending-tv'],
+    queryFn: () => discoverTV({ sort_by: 'popularity.desc' }),
+    enabled: debouncedQuery.length === 0,
+    staleTime: 60 * 60 * 1000, // 1 hour
+  });
+
+  const { data: trendingMovieData, isLoading: trendingMovieLoading } = useQuery({
+    queryKey: ['trending-movie'],
+    queryFn: () => discoverMovies({ sort_by: 'popularity.desc' }),
+    enabled: debouncedQuery.length === 0,
+    staleTime: 60 * 60 * 1000, // 1 hour
+  });
+
   // Filter results client-side based on advanced filters
   const filterResults = (items: ResultWithType[]): ResultWithType[] => {
     return items.filter(item => {
@@ -193,33 +208,37 @@ export default function SearchScreen() {
     return filteredResults;
   })();
 
+  // Trending results for initial display
+  const trendingResults: ResultWithType[] = (() => {
+    if (debouncedQuery.length > 0) return [];
+
+    const merged: ResultWithType[] = [];
+
+    if (filter === 'all' || filter === 'tv') {
+      const tvResults = trendingTvData?.results ?? [];
+      merged.push(...tvResults.map(item => ({ ...item, media_type: 'tv' as const })));
+    }
+
+    if (filter === 'all' || filter === 'movie') {
+      const movieResults = trendingMovieData?.results ?? [];
+      merged.push(...movieResults.map(item => ({ ...item, media_type: 'movie' as const })));
+    }
+
+    return merged;
+  })();
+
   const showSkeleton = (tvLoading || movieLoading) && debouncedQuery.length > 0;
-  const isError = false;
+  const showTrendingSkeleton = (trendingTvLoading || trendingMovieLoading) && debouncedQuery.length === 0;
 
   const handleResultPress = (item: ResultWithType) => {
     const route = item.media_type === 'movie' ? `/movie/${item.id}` : `/drama/${item.id}`;
-    router.push(route);
+    router.push(route as never);
   };
 
   const renderEmpty = () => {
     if (showSkeleton) return null;
-    if (isError) {
-      return (
-        <View className="items-center justify-center flex-1 pt-20">
-          <Text className="text-base text-center text-light-300">
-            Something went wrong.{'\n'}Try again.
-          </Text>
-        </View>
-      );
-    }
     if (debouncedQuery.length === 0) {
-      return (
-        <View className="items-center justify-center flex-1 pt-20">
-          <Text className="text-base text-center text-light-200">
-            Search for K-Dramas, Anime, or Movies
-          </Text>
-        </View>
-      );
+      return null; // Don't show empty state when we have trending content
     }
     return (
       <View className="items-center justify-center flex-1 pt-20">
@@ -517,7 +536,7 @@ export default function SearchScreen() {
           )}
       </View>
 
-      {/* Skeleton */}
+      {/* Skeleton for search results */}
       {showSkeleton && (
         <View className="px-4">
           <SkeletonCard />
@@ -526,8 +545,17 @@ export default function SearchScreen() {
         </View>
       )}
 
-      {/* Results */}
-      {!showSkeleton && (
+      {/* Skeleton for trending content */}
+      {showTrendingSkeleton && (
+        <View className="px-4">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </View>
+      )}
+
+      {/* Search Results */}
+      {debouncedQuery.length > 0 && !showSkeleton && (
         <FlatList<ResultWithType>
           data={results}
           keyExtractor={(item, idx) => `${item.media_type}-${item.id}-${idx}`}
@@ -539,6 +567,29 @@ export default function SearchScreen() {
           )}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120, flexGrow: 1 }}
           ListEmptyComponent={renderEmpty}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        />
+      )}
+
+      {/* Trending Content - Initial View */}
+      {debouncedQuery.length === 0 && !showTrendingSkeleton && (
+        <FlatList<ResultWithType>
+          data={trendingResults}
+          keyExtractor={(item, idx) => `${item.media_type}-${item.id}-${idx}`}
+          renderItem={({ item }) => (
+            <DramaCard
+              drama={item}
+              onPress={() => handleResultPress(item)}
+            />
+          )}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120, flexGrow: 1 }}
+          ListHeaderComponent={() => (
+            <Text className="mt-2 mb-4 text-lg font-bold text-white">
+              {filter === 'all' ? '🔥 Trending Now' : filter === 'tv' ? '📺 Trending TV & Anime' : '🎬 Trending Movies'}
+            </Text>
+          )}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
