@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mobile_movie_app",
-    "slug": "mobile_movie_app",
+    "name": "Votch",
+    "slug": "Votch",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
@@ -36,7 +36,8 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
