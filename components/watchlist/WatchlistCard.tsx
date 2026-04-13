@@ -39,7 +39,7 @@ export default function WatchlistCard({ item, onPress, onLongPress }: WatchlistC
       onPress={onPress}
       onLongPress={onLongPress}
       activeOpacity={0.8}
-      className="flex-row bg-dark-100 rounded-xl p-3 mb-3"
+      className="flex-row bg-dark-100 rounded-xl p-3 mb-4"
     >
       <ImageWithFallback
         source={posterUrl ? { uri: posterUrl } : undefined}

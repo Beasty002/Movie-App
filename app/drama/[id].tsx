@@ -3,7 +3,7 @@ import { getDramaDetail, getDramaEpisodes, getRecommendedContent } from '@/servi
 import { useAuthStore } from '@/store/useAuthStore';
 import { useProgressStore } from '@/store/useProgressStore';
 import { useWatchlistStore } from '@/store/useWatchlistStore';
-import type { WatchlistStatus } from '@/types';
+import type { MediaType, WatchlistStatus } from '@/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -24,12 +24,22 @@ export default function DramaDetailScreen() {
   const [synopsisExpanded, setSynopsisExpanded] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState(1);
 
-  const watchlistItem = getItemByMedia(dramaId, 'kdrama');
-
   const { data: drama, isLoading, isError } = useQuery({
     queryKey: ['drama', id],
     queryFn: () => getDramaDetail(dramaId),
   });
+
+  // Korean → 'kdrama', Japanese animation → 'anime', everything else → 'series'
+  const isKorean = drama?.origin_country?.includes('KR') ?? false;
+  const isAnime =
+    !isKorean &&
+    (drama?.origin_country?.includes('JP') ?? false) &&
+    (drama?.genres?.some((g) => g.id === 16) ?? false);
+  const mediaType: MediaType = isKorean ? 'kdrama' : isAnime ? 'anime' : 'series';
+
+  // Support items saved as 'kdrama' before this fix was applied
+  const watchlistItem =
+    getItemByMedia(dramaId, mediaType) ?? getItemByMedia(dramaId, 'kdrama');
 
   const { data: episodes, isLoading: isEpisodesLoading } = useQuery({
     queryKey: ['drama', id, 'episodes', selectedSeason],
@@ -45,23 +55,23 @@ export default function DramaDetailScreen() {
 
   useEffect(() => {
     if (user && drama) {
-      fetchProgress(user.id, dramaId, 'kdrama');
+      fetchProgress(user.id, dramaId, mediaType);
     }
   }, [user, drama]);
 
   const handleToggleEpisode = useCallback(
     async (episodeNumber: number) => {
       if (!user || !drama) return;
-      const watched = isEpisodeWatched(dramaId, 'kdrama', episodeNumber);
+      const watched = isEpisodeWatched(dramaId, mediaType, episodeNumber);
       try {
         if (watched) {
-          await unmarkEpisode(user.id, dramaId, 'kdrama', episodeNumber);
+          await unmarkEpisode(user.id, dramaId, mediaType, episodeNumber);
           Toast.show({
             type: 'success',
             text1: 'Episode marked as unwatched',
           });
         } else {
-          await markEpisodeWatched(user.id, dramaId, 'kdrama', episodeNumber);
+          await markEpisodeWatched(user.id, dramaId, mediaType, episodeNumber);
           Toast.show({
             type: 'success',
             text1: 'Episode marked as watched',
@@ -72,7 +82,7 @@ export default function DramaDetailScreen() {
             await addToWatchlist(
               {
                 media_id: drama.id,
-                media_type: 'kdrama',
+                media_type: mediaType,
                 media_title: drama.name || '',
                 media_title_korean: drama.original_name ?? null,
                 media_poster: drama.poster_path,
@@ -106,11 +116,11 @@ export default function DramaDetailScreen() {
       try {
         const releasedEpisodes = episodes.filter((ep) => ep.air_date);
         for (const episode of releasedEpisodes) {
-          const isWatched = isEpisodeWatched(dramaId, 'kdrama', episode.episode_number);
+          const isWatched = isEpisodeWatched(dramaId, mediaType, episode.episode_number);
           if (markAsWatched && !isWatched) {
-            await markEpisodeWatched(user.id, dramaId, 'kdrama', episode.episode_number);
+            await markEpisodeWatched(user.id, dramaId, mediaType, episode.episode_number);
           } else if (!markAsWatched && isWatched) {
-            await unmarkEpisode(user.id, dramaId, 'kdrama', episode.episode_number);
+            await unmarkEpisode(user.id, dramaId, mediaType, episode.episode_number);
           }
         }
         Toast.show({
@@ -119,12 +129,12 @@ export default function DramaDetailScreen() {
         });
 
         // Auto-add to watchlist if not already there
-        let currentItem = getItemByMedia(dramaId, 'kdrama');
+        let currentItem = getItemByMedia(dramaId, mediaType) ?? getItemByMedia(dramaId, 'kdrama');
         if (!currentItem) {
           await addToWatchlist(
             {
               media_id: drama.id,
-              media_type: 'kdrama',
+              media_type: mediaType,
               media_title: drama.name || '',
               media_title_korean: drama.original_name ?? null,
               media_poster: drama.poster_path,
@@ -137,7 +147,7 @@ export default function DramaDetailScreen() {
         } else if (markAsWatched) {
           // Check if all episodes are watched - if so, mark as completed
           const totalEpisodes = drama.number_of_episodes ?? 0;
-          const watchedCount = getWatchedCount(dramaId, 'kdrama');
+          const watchedCount = getWatchedCount(dramaId, mediaType);
           if (watchedCount >= totalEpisodes && totalEpisodes > 0) {
             await updateStatus(currentItem.id, 'completed');
           } else if (currentItem.status === 'planning') {
@@ -173,7 +183,7 @@ export default function DramaDetailScreen() {
           await addToWatchlist(
             {
               media_id: drama.id,
-              media_type: 'kdrama',
+              media_type: mediaType,
               media_title: drama.name || '',
               media_title_korean: drama.original_name ?? null,
               media_poster: drama.poster_path,
@@ -255,7 +265,7 @@ export default function DramaDetailScreen() {
         onSeasonChange={setSelectedSeason}
         isDrama
         isEpisodesLoading={isEpisodesLoading}
-        isEpisodeWatched={(episodeNumber) => isEpisodeWatched(dramaId, 'kdrama', episodeNumber)}
+        isEpisodeWatched={(episodeNumber) => isEpisodeWatched(dramaId, mediaType, episodeNumber)}
         onToggleEpisode={handleToggleEpisode}
         onMarkAllSeason={handleMarkAllSeason}
       />

@@ -133,7 +133,7 @@ export default function HomeScreen() {
             )}
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 16 }}
+            contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
           />
         </View>
       )}

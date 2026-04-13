@@ -19,7 +19,7 @@ import Toast from 'react-native-toast-message';
 
 type FilterTab = 'all' | WatchlistStatus;
 type SortKey = 'recent_added' | 'recent_updated' | 'title_az';
-type MediaTypeFilter = 'all' | 'kdrama' | 'anime' | 'movie';
+type MediaTypeFilter = 'all' | 'kdrama' | 'anime' | 'movie' | 'series';
 
 const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -32,6 +32,7 @@ const FILTER_TABS: { key: FilterTab; label: string }[] = [
 const MEDIA_TYPE_FILTERS: { key: MediaTypeFilter; label: string }[] = [
   { key: 'all', label: 'All Content' },
   { key: 'kdrama', label: 'K-Dramas' },
+  { key: 'series', label: 'Series' },
   { key: 'anime', label: 'Anime' },
   { key: 'movie', label: 'Movies' },
 ];
@@ -250,6 +251,7 @@ export default function WatchlistScreen() {
             paddingHorizontal: 16,
             paddingBottom: 120,
             flexGrow: 1,
+            gap: 8,
           }}
           refreshControl={
             <RefreshControl
