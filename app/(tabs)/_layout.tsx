@@ -74,7 +74,7 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="saved"
+        name="watchlist"
         options={{
           title: 'Watchlist',
           headerShown: false,

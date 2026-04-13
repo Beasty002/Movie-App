@@ -1,24 +1,232 @@
-import SearchBar from "@/components/SearchBar";
-import { icons } from "@/constants/icons";
-import { images } from "@/constants/images";
-import { Image, ScrollView, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useEffect } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
+import { getTrending, getImageUrl } from '@/services/tmdb';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useWatchlistStore } from '@/store/useWatchlistStore';
+import DramaCard from '@/components/drama/DramaCard';
+import type { TMDBDrama, WatchlistWithProgress } from '@/types';
+import { useState, useCallback } from 'react';
 
-export default function Index() {
-  const router = useRouter();
+function TrendingSkeleton() {
   return (
-    <View
-      className="flex-1 bg-primary"
-
-    >
-      <Image source={images.bg} className="absolute z-0 w-full" />
-      <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 10, minHeight: '100%' }}>
-        <Image source={icons.logo} className="w-12 h-10 mx-auto mt-20 mb-5" />
-        <View className="flex-1 mt-5">
-          <SearchBar onPress={() => router.push('/search')} placeholder="Search movies..." />
+    <View className="flex-row">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <View key={i} className="mr-3 w-28">
+          <View
+            style={{ width: 112, height: 160, borderRadius: 8, backgroundColor: '#221F3D' }}
+          />
+          <View className="h-3 bg-dark-100 rounded mt-2 w-4/5" />
         </View>
-      </ScrollView>
-
+      ))}
     </View>
+  );
+}
+
+function ContinueWatchingCard({
+  item,
+  onPress,
+}: {
+  item: WatchlistWithProgress;
+  onPress: () => void;
+}) {
+  const posterUrl = getImageUrl(item.media_poster, 'w300');
+  const progress =
+    item.total_episodes && item.total_episodes > 0
+      ? Math.min(item.episodes_watched / item.total_episodes, 1)
+      : 0;
+
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8} className="mr-3 w-32">
+      <Image
+        source={posterUrl ? { uri: posterUrl } : undefined}
+        style={{ width: 128, height: 185, borderRadius: 10 }}
+        contentFit="cover"
+        placeholder={{ color: '#221F3D' }}
+      />
+      <Text className="text-white text-[12px] font-medium mt-1.5" numberOfLines={1}>
+        {item.media_title}
+      </Text>
+      <View className="h-1 bg-dark-100 rounded-full mt-1 overflow-hidden">
+        <View
+          className="h-1 bg-accent rounded-full"
+          style={{ width: `${progress * 100}%` }}
+        />
+      </View>
+      {item.total_episodes ? (
+        <Text className="text-light-300 text-[10px] mt-0.5">
+          {item.episodes_watched}/{item.total_episodes}
+        </Text>
+      ) : null}
+    </TouchableOpacity>
+  );
+}
+
+export default function HomeScreen() {
+  const router = useRouter();
+  const { user } = useAuthStore();
+  const { items, isLoading: watchlistLoading, fetchWatchlist } = useWatchlistStore();
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (user) fetchWatchlist(user.id);
+  }, [user]);
+
+  const { data: trending, isLoading: trendingLoading, refetch: refetchTrending } = useQuery({
+    queryKey: ['trending'],
+    queryFn: getTrending,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const onRefresh = useCallback(async () => {
+    if (!user) return;
+    setRefreshing(true);
+    await Promise.all([fetchWatchlist(user.id), refetchTrending()]);
+    setRefreshing(false);
+  }, [user, fetchWatchlist, refetchTrending]);
+
+  const watching = items.filter((i) => i.status === 'watching');
+  const recentlyAdded = [...items]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5);
+
+  return (
+    <ScrollView
+      className="flex-1 bg-primary"
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: 120 }}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#AB8BFF" />
+      }
+    >
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-4 pt-14 pb-4">
+        <Text className="text-white font-bold text-2xl tracking-wide">Votch</Text>
+        <TouchableOpacity className="w-9 h-9 items-center justify-center">
+          <Text className="text-2xl">🔔</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Continue Watching */}
+      {watching.length > 0 && (
+        <View className="mb-6">
+          <Text className="text-white font-semibold text-base px-4 mb-3">
+            Continue Watching
+          </Text>
+          <FlatList<WatchlistWithProgress>
+            data={watching}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <ContinueWatchingCard
+                item={item}
+                onPress={() => router.push(`/drama/${item.media_id}`)}
+              />
+            )}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16 }}
+          />
+        </View>
+      )}
+
+      {/* Trending K-Dramas */}
+      <View className="mb-6">
+        <Text className="text-white font-semibold text-base px-4 mb-3">
+          Trending K-Dramas
+        </Text>
+        {trendingLoading ? (
+          <View className="px-4">
+            <TrendingSkeleton />
+          </View>
+        ) : (
+          <FlatList<TMDBDrama>
+            data={trending ?? []}
+            keyExtractor={(item) => String(item.id)}
+            renderItem={({ item }) => (
+              <DramaCard
+                drama={item}
+                onPress={() => router.push(`/drama/${item.id}`)}
+                compact
+              />
+            )}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16 }}
+            ListEmptyComponent={
+              <Text className="text-light-300 text-sm px-4">Nothing trending right now</Text>
+            }
+          />
+        )}
+      </View>
+
+      {/* Recently Added */}
+      {recentlyAdded.length > 0 && (
+        <View className="px-4">
+          <Text className="text-white font-semibold text-base mb-3">
+            Recently Added to My List
+          </Text>
+          {recentlyAdded.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              onPress={() => router.push(`/drama/${item.media_id}`)}
+              activeOpacity={0.8}
+              className="flex-row items-center bg-dark-100 rounded-xl p-3 mb-2"
+            >
+              <Image
+                source={item.media_poster ? { uri: getImageUrl(item.media_poster, 'w300') ?? '' } : undefined}
+                style={{ width: 44, height: 64, borderRadius: 6 }}
+                contentFit="cover"
+                placeholder={{ color: '#221F3D' }}
+              />
+              <View className="flex-1 ml-3">
+                <Text className="text-white text-[13px] font-medium" numberOfLines={1}>
+                  {item.media_title}
+                </Text>
+                {item.media_title_korean ? (
+                  <Text className="text-light-300 text-[11px] mt-0.5" numberOfLines={1}>
+                    {item.media_title_korean}
+                  </Text>
+                ) : null}
+                <Text className="text-light-300 text-[11px] mt-0.5 capitalize">
+                  {item.status}
+                  {item.total_episodes
+                    ? ` · ${item.episodes_watched}/${item.total_episodes} eps`
+                    : ''}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {/* Empty state when watchlist is loading and no items */}
+      {!watchlistLoading && items.length === 0 && (
+        <View className="px-4 mt-4">
+          <TouchableOpacity
+            onPress={() => router.push('/search')}
+            activeOpacity={0.8}
+            className="bg-dark-100 rounded-2xl p-6 items-center"
+          >
+            <Text className="text-3xl mb-2">🎬</Text>
+            <Text className="text-white font-semibold text-base mb-1">
+              Start Your Watchlist
+            </Text>
+            <Text className="text-light-300 text-[13px] text-center">
+              Search for K-Dramas and add them to track your progress
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </ScrollView>
   );
 }

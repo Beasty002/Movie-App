@@ -82,7 +82,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         .throwOnError();
     } catch (err) {
       const authError = err as AuthError | Error;
-      const errorMsg = authError instanceof AuthError 
+      const errorMsg = authError instanceof AuthError
         ? authError.message
         : authError.message;
       set({ error: errorMsg });
