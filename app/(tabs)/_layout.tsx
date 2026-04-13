@@ -1,30 +1,22 @@
-import { View, Text, ImageBackground, Image } from 'react-native';
 import { Tabs } from 'expo-router';
-import { images } from '@/constants/images';
-import { icons } from '@/constants/icons';
+import { Bookmark, Home, Search, User } from 'lucide-react-native';
+import { View } from 'react-native';
 
 interface TabIconProps {
   focused: boolean;
-  icon: ReturnType<typeof require>;
-  title: string;
 }
 
-const TabIcon = ({ focused, icon, title }: TabIconProps) => {
-  if (focused) {
-    return (
-      <ImageBackground
-        source={images.highlight}
-        className="flex flex-row items-center justify-center flex-1 w-full min-h-16 min-w-[112px] mt-4 rounded-full overflow-hidden"
-      >
-        <Image source={icon} tintColor="#151312" className="size-5" />
-        <Text className="ml-2 text-base font-semibold text-secondary">{title}</Text>
-      </ImageBackground>
-    );
-  }
-
+const TabIcon = ({ focused, icon: Icon }: TabIconProps & { icon: any }) => {
   return (
-    <View className="items-center justify-center mt-4 rounded-full size-full">
-      <Image source={icon} tintColor="#A8B5DB" className="size-5" />
+    <View className="items-center justify-center">
+      <Icon
+        size={20}
+        strokeWidth={2.5}
+        color={focused ? '#AB8BFF' : '#A8B5DB'}
+        style={{
+          opacity: focused ? 1 : 0.6,
+        }}
+      />
     </View>
   );
 };
@@ -35,21 +27,28 @@ export default function TabsLayout() {
       screenOptions={{
         tabBarShowLabel: false,
         tabBarItemStyle: {
-          width: '100%',
-          height: '100%',
           justifyContent: 'center',
           alignItems: 'center',
+          flex: 1,
+          height: 60,
+          paddingVertical: 0,
+          paddingTop: 0,
+          paddingBottom: 0,
+          marginTop: 10,
+
         },
         tabBarStyle: {
-          backgroundColor: '#0f0D23',
-          borderRadius: 50,
-          marginHorizontal: 20,
-          marginBottom: 36,
-          height: 52,
           position: 'absolute',
+          bottom: 20,
+          left: 20,
+          right: 20,
+          height: 60,
+          borderRadius: 16,
           overflow: 'hidden',
           borderWidth: 1,
-          borderColor: '#0f0d23',
+          borderColor: 'rgba(255, 255, 255, 0.08)',
+          backgroundColor: 'rgba(15, 13, 35, 0.85)',
+          marginHorizontal: 10,
         },
       }}
     >
@@ -59,7 +58,7 @@ export default function TabsLayout() {
           title: 'Home',
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.home} title="Home" />
+            <TabIcon focused={focused} icon={Home} />
           ),
         }}
       />
@@ -69,7 +68,7 @@ export default function TabsLayout() {
           title: 'Search',
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.search} title="Search" />
+            <TabIcon focused={focused} icon={Search} />
           ),
         }}
       />
@@ -79,7 +78,7 @@ export default function TabsLayout() {
           title: 'Watchlist',
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.save} title="Watchlist" />
+            <TabIcon focused={focused} icon={Bookmark} />
           ),
         }}
       />
@@ -89,7 +88,7 @@ export default function TabsLayout() {
           title: 'Profile',
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.person} title="Profile" />
+            <TabIcon focused={focused} icon={User} />
           ),
         }}
       />
