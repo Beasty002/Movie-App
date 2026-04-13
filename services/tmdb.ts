@@ -65,10 +65,12 @@ export function getImageUrl(
 export async function searchDramas(
   query: string,
   page = 1,
+  filters: Record<string, string> = {},
 ): Promise<TMDBSearchResponse> {
   const response = await fetchTMDB<TMDBSearchResponse>('/search/tv', {
     query: encodeURIComponent(query),
     page: String(page),
+    ...filters,
   });
   // Mark all results as TV
   return {
@@ -80,12 +82,43 @@ export async function searchDramas(
 export async function searchMovies(
   query: string,
   page = 1,
+  filters: Record<string, string> = {},
 ): Promise<TMDBSearchResponse> {
   const response = await fetchTMDB<TMDBSearchResponse>('/search/movie', {
     query: encodeURIComponent(query),
     page: String(page),
+    ...filters,
   });
   // Mark all results as movies
+  return {
+    ...response,
+    results: response.results.map(item => ({ ...item, media_type: 'movie' })),
+  };
+}
+
+// Discover endpoints with full filter support
+export async function discoverTV(
+  filters: Record<string, string> = {},
+  page = 1,
+): Promise<TMDBSearchResponse> {
+  const response = await fetchTMDB<TMDBSearchResponse>('/discover/tv', {
+    page: String(page),
+    ...filters,
+  });
+  return {
+    ...response,
+    results: response.results.map(item => ({ ...item, media_type: 'tv' })),
+  };
+}
+
+export async function discoverMovies(
+  filters: Record<string, string> = {},
+  page = 1,
+): Promise<TMDBSearchResponse> {
+  const response = await fetchTMDB<TMDBSearchResponse>('/discover/movie', {
+    page: String(page),
+    ...filters,
+  });
   return {
     ...response,
     results: response.results.map(item => ({ ...item, media_type: 'movie' })),
