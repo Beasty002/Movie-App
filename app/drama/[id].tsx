@@ -17,7 +17,7 @@ export default function DramaDetailScreen() {
 
   const { user } = useAuthStore();
   const { addToWatchlist, updateStatus, removeFromWatchlist, getItemByMedia } = useWatchlistStore();
-  const { fetchProgress, markEpisodeWatched, unmarkEpisode, isEpisodeWatched } = useProgressStore();
+  const { fetchProgress, markEpisodeWatched, unmarkEpisode, isEpisodeWatched, getWatchedCount } = useProgressStore();
 
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
@@ -31,7 +31,7 @@ export default function DramaDetailScreen() {
     queryFn: () => getDramaDetail(dramaId),
   });
 
-  const { data: episodes } = useQuery({
+  const { data: episodes, isLoading: isEpisodesLoading } = useQuery({
     queryKey: ['drama', id, 'episodes', selectedSeason],
     queryFn: () => getDramaEpisodes(dramaId, selectedSeason),
     enabled: !!drama && (drama.number_of_seasons ?? 0) >= selectedSeason,
@@ -51,7 +51,7 @@ export default function DramaDetailScreen() {
 
   const handleToggleEpisode = useCallback(
     async (episodeNumber: number) => {
-      if (!user) return;
+      if (!user || !drama) return;
       const watched = isEpisodeWatched(dramaId, 'kdrama', episodeNumber);
       try {
         if (watched) {
@@ -66,7 +66,28 @@ export default function DramaDetailScreen() {
             type: 'success',
             text1: 'Episode marked as watched',
           });
+
+          // Auto-add to watchlist if not already there
+          if (!watchlistItem) {
+            await addToWatchlist(
+              {
+                media_id: drama.id,
+                media_type: 'kdrama',
+                media_title: drama.name || '',
+                media_title_korean: drama.original_name ?? null,
+                media_poster: drama.poster_path,
+                media_year: drama.first_air_date ? parseInt(drama.first_air_date.split('-')[0], 10) : null,
+                total_episodes: drama.number_of_episodes ?? null,
+                status: 'watching',
+              },
+              user.id,
+            );
+          } else if (watchlistItem.status === 'planning') {
+            // Auto-change from planning to watching when marking episodes
+            await updateStatus(watchlistItem.id, 'watching');
+          }
         }
+
         // Trigger store refresh to update watchlist reactivity
         await queryClient.invalidateQueries({ queryKey: ['watchlist'] });
       } catch (error) {
@@ -76,12 +97,12 @@ export default function DramaDetailScreen() {
         });
       }
     },
-    [user, dramaId, isEpisodeWatched, markEpisodeWatched, unmarkEpisode, queryClient],
+    [user, drama, dramaId, isEpisodeWatched, markEpisodeWatched, unmarkEpisode, addToWatchlist, updateStatus, watchlistItem, queryClient],
   );
 
   const handleMarkAllSeason = useCallback(
     async (markAsWatched: boolean) => {
-      if (!user || !episodes) return;
+      if (!user || !episodes || !drama) return;
       try {
         const releasedEpisodes = episodes.filter((ep) => ep.air_date);
         for (const episode of releasedEpisodes) {
@@ -96,6 +117,34 @@ export default function DramaDetailScreen() {
           type: 'success',
           text1: markAsWatched ? 'Season marked as watched' : 'Season marked as unwatched',
         });
+
+        // Auto-add to watchlist if not already there
+        let currentItem = getItemByMedia(dramaId, 'kdrama');
+        if (!currentItem) {
+          await addToWatchlist(
+            {
+              media_id: drama.id,
+              media_type: 'kdrama',
+              media_title: drama.name || '',
+              media_title_korean: drama.original_name ?? null,
+              media_poster: drama.poster_path,
+              media_year: drama.first_air_date ? parseInt(drama.first_air_date.split('-')[0], 10) : null,
+              total_episodes: drama.number_of_episodes ?? null,
+              status: markAsWatched ? 'completed' : 'watching',
+            },
+            user.id,
+          );
+        } else if (markAsWatched) {
+          // Check if all episodes are watched - if so, mark as completed
+          const totalEpisodes = drama.number_of_episodes ?? 0;
+          const watchedCount = getWatchedCount(dramaId, 'kdrama');
+          if (watchedCount >= totalEpisodes && totalEpisodes > 0) {
+            await updateStatus(currentItem.id, 'completed');
+          } else if (currentItem.status === 'planning') {
+            await updateStatus(currentItem.id, 'watching');
+          }
+        }
+
         // Trigger store refresh to update watchlist reactivity
         await queryClient.invalidateQueries({ queryKey: ['watchlist'] });
       } catch (error) {
@@ -105,7 +154,7 @@ export default function DramaDetailScreen() {
         });
       }
     },
-    [user, dramaId, episodes, isEpisodeWatched, markEpisodeWatched, unmarkEpisode, queryClient],
+    [user, dramaId, drama, episodes, isEpisodeWatched, markEpisodeWatched, unmarkEpisode, addToWatchlist, updateStatus, getWatchedCount, getItemByMedia, queryClient],
   );
 
   const handleAddOrUpdate = useCallback(
@@ -205,6 +254,7 @@ export default function DramaDetailScreen() {
         selectedSeason={selectedSeason}
         onSeasonChange={setSelectedSeason}
         isDrama
+        isEpisodesLoading={isEpisodesLoading}
         isEpisodeWatched={(episodeNumber) => isEpisodeWatched(dramaId, 'kdrama', episodeNumber)}
         onToggleEpisode={handleToggleEpisode}
         onMarkAllSeason={handleMarkAllSeason}

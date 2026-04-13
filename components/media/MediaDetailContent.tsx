@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import { Bookmark, Check, ChevronDown, Trash2 } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import {
+    ActivityIndicator,
     FlatList,
     Modal,
     ScrollView,
@@ -83,6 +84,7 @@ interface MediaDetailContentProps {
     onToggleEpisode?: (episodeNumber: number) => void;
     onMarkAllSeason?: (markAsWatched: boolean) => void;
     isDrama?: boolean;
+    isEpisodesLoading?: boolean;
 }
 
 export default function MediaDetailContent({
@@ -104,6 +106,7 @@ export default function MediaDetailContent({
     onToggleEpisode,
     onMarkAllSeason,
     isDrama = false,
+    isEpisodesLoading = false,
 }: MediaDetailContentProps) {
     const router = useRouter();
     const [showEpisodeActions, setShowEpisodeActions] = useState(false);
@@ -314,8 +317,14 @@ export default function MediaDetailContent({
                     )}
 
                     {/* Episodes (Drama only) */}
-                    {isDrama && episodes && episodes.length > 0 && (
+                    {isDrama && ((episodes && episodes.length > 0) || isEpisodesLoading) && (
                         <View className="mt-5">
+                            {isEpisodesLoading && (!episodes || episodes.length === 0) ? (
+                                <View className="items-center py-8">
+                                    <ActivityIndicator color="#AB8BFF" size="large" />
+                                </View>
+                            ) : (
+                            <>
                             <View className="flex-row items-center justify-between mb-3">
                                 <Text className="text-base font-semibold text-white">Episodes</Text>
                                 <View className="flex-row items-center gap-x-2">
@@ -412,6 +421,8 @@ export default function MediaDetailContent({
                                     </View>
                                 );
                             })}
+                            </>
+                            )}
                         </View>
                     )}
 
