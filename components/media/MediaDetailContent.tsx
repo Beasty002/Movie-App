@@ -4,7 +4,7 @@ import DirectorCard from '@/components/media/DirectorCard';
 import { getImageUrl } from '@/services/tmdb';
 import type { TMDBCast, TMDBDrama, TMDBEpisode, WatchlistStatus } from '@/types';
 import { useRouter } from 'expo-router';
-import { Bookmark, Check, ChevronDown, Trash2 } from 'lucide-react-native';
+import { Bookmark, Check, ChevronDown, ChevronUp, Trash2 } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import {
     ActivityIndicator,
@@ -145,7 +145,7 @@ export default function MediaDetailContent({
                     {/* Back button */}
                     <TouchableOpacity
                         onPress={() => router.back()}
-                        className="absolute top-12 left-4 w-9 h-9 bg-black/50 rounded-full items-center justify-center"
+                        className="absolute items-center justify-center rounded-full top-12 left-4 w-9 h-9 bg-black/50"
                     >
                         <Text className="text-base text-white">‹</Text>
                     </TouchableOpacity>
@@ -172,7 +172,7 @@ export default function MediaDetailContent({
                     </View>
 
                     {/* Meta row */}
-                    <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1 mt-3">
+                    <View className="flex-row flex-wrap items-center mt-3 gap-x-3 gap-y-1">
                         {year ? <Text className="text-light-300 text-[13px]">{year}</Text> : null}
                         {isDrama && media.number_of_episodes ? (
                             <Text className="text-light-300 text-[13px]">{media.number_of_episodes} eps</Text>
@@ -197,7 +197,7 @@ export default function MediaDetailContent({
                             contentContainerStyle={{ gap: 8 }}
                         >
                             {networks.map((n) => (
-                                <View key={n.id} className="bg-dark-100 px-3 py-1 rounded-full">
+                                <View key={n.id} className="px-3 py-1 rounded-full bg-dark-100">
                                     <Text className="text-light-200 text-[12px]">{n.name}</Text>
                                 </View>
                             ))}
@@ -213,7 +213,7 @@ export default function MediaDetailContent({
                             contentContainerStyle={{ gap: 8 }}
                         >
                             {media.genres.map((g) => (
-                                <View key={g.id} className="border border-accent/50 px-3 py-1 rounded-full">
+                                <View key={g.id} className="px-3 py-1 border rounded-full border-accent/50">
                                     <Text className="text-accent text-[12px]">{g.name}</Text>
                                 </View>
                             ))}
@@ -221,13 +221,13 @@ export default function MediaDetailContent({
                     )}
 
                     {/* Watchlist button */}
-                    <View className="flex-row gap-x-3 mt-4">
+                    <View className="flex-row mt-4 gap-x-3">
                         {watchlistItem ? (
                             <>
                                 <TouchableOpacity
                                     onPress={() => onStatusModalToggle(true)}
                                     activeOpacity={0.8}
-                                    className="flex-1 items-center py-3 border border-accent rounded-xl"
+                                    className="items-center flex-1 py-3 border border-accent rounded-xl"
                                 >
                                     <View className="flex-row items-center gap-x-2">
                                         <StatusIcon
@@ -259,7 +259,7 @@ export default function MediaDetailContent({
                             <TouchableOpacity
                                 onPress={() => onStatusModalToggle(true)}
                                 activeOpacity={0.8}
-                                className="flex-1 items-center py-3 bg-accent rounded-xl"
+                                className="items-center flex-1 py-3 bg-accent rounded-xl"
                             >
                                 <Text className="text-primary font-bold text-[14px]">+ Add to Watchlist</Text>
                             </TouchableOpacity>
@@ -269,7 +269,7 @@ export default function MediaDetailContent({
                     {/* Synopsis */}
                     {synopsis ? (
                         <View className="mt-5">
-                            <Text className="text-base font-semibold text-white mb-2">
+                            <Text className="mb-2 text-base font-semibold text-white">
                                 {isDrama ? 'Synopsis' : 'Overview'}
                             </Text>
                             <Text
@@ -289,7 +289,7 @@ export default function MediaDetailContent({
                     {/* Cast */}
                     {cast.length > 0 && (
                         <View className="mt-5">
-                            <Text className="text-base font-semibold text-white mb-3">Cast</Text>
+                            <Text className="mb-3 text-base font-semibold text-white">Cast</Text>
                             <FlatList
                                 data={cast.slice(0, 15)}
                                 keyExtractor={(item) => String(item.id)}
@@ -304,7 +304,7 @@ export default function MediaDetailContent({
                     {/* Directors */}
                     {directors.length > 0 && (
                         <View className="mt-5">
-                            <Text className="text-base font-semibold text-white mb-3">Directors</Text>
+                            <Text className="mb-3 text-base font-semibold text-white">Directors</Text>
                             <FlatList
                                 data={directors}
                                 keyExtractor={(item) => String(item.id)}
@@ -325,14 +325,70 @@ export default function MediaDetailContent({
                                 </View>
                             ) : episodes && episodes.length === 0 ? (
                                 <View className="items-center py-8">
-                                    <Text className="text-light-300 text-sm">No episodes available for this season</Text>
+                                    <Text className="text-sm text-light-300">No episodes available for this season</Text>
                                 </View>
                             ) : (
                                 <>
-                                    <View className="flex-row items-center justify-between mb-3">
+                                    {/* Episodes Header with Toggle */}
+                                    <View
+                                        className="flex-row items-center justify-between mb-3"
+                                        style={{ zIndex: 100 }}
+                                    >
                                         <Text className="text-base font-semibold text-white">Episodes</Text>
-                                        <View className="flex-row items-center gap-x-2">
-                                            {media.number_of_seasons && media.number_of_seasons > 1 && (
+                                        <TouchableOpacity
+                                            onPress={() => setShowEpisodeActions(!showEpisodeActions)}
+                                            activeOpacity={0.6}
+                                            className="p-2"
+                                            style={{ zIndex: 100 }}
+                                            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                                        >
+                                            {showEpisodeActions ? (
+                                                <ChevronUp
+                                                    size={20}
+                                                    strokeWidth={2.5}
+                                                    color="#AB8BFF"
+                                                />
+                                            ) : (
+                                                <ChevronDown
+                                                    size={20}
+                                                    strokeWidth={2.5}
+                                                    color="#AB8BFF"
+                                                />
+                                            )}
+                                        </TouchableOpacity>
+                                    </View>
+
+                                    {/* Mark All / Clear All buttons - Collapsible */}
+                                    {showEpisodeActions && (
+                                        <View
+                                            className="flex-row mb-4 gap-x-2"
+                                            pointerEvents="box-only"
+                                        >
+                                            <TouchableOpacity
+                                                onPress={() => onMarkAllSeason?.(true)}
+                                                activeOpacity={0.7}
+                                                className="items-center flex-1 px-3 py-2 border rounded-lg bg-accent/15 border-accent"
+                                            >
+                                                <Text className="text-accent text-[12px] font-semibold">Mark All</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                onPress={() => onMarkAllSeason?.(false)}
+                                                activeOpacity={0.7}
+                                                className="items-center flex-1 px-3 py-2 border rounded-lg bg-red-500/15 border-red-500/50"
+                                            >
+                                                <Text className="text-red-400 text-[12px] font-semibold">Clear All</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
+
+                                    {/* Seasons Selector - Horizontally Scrollable */}
+                                    {media.number_of_seasons && media.number_of_seasons > 1 && (
+                                        <View className="mb-4">
+                                            <ScrollView
+                                                horizontal
+                                                showsHorizontalScrollIndicator={false}
+                                                scrollEnabled
+                                            >
                                                 <View className="flex-row gap-x-2">
                                                     {Array.from(
                                                         { length: media.number_of_seasons },
@@ -351,45 +407,7 @@ export default function MediaDetailContent({
                                                         </TouchableOpacity>
                                                     ))}
                                                 </View>
-                                            )}
-                                            {/* Toggle Episode Actions - Icon Only */}
-                                            <TouchableOpacity
-                                                onPress={() => setShowEpisodeActions(!showEpisodeActions)}
-                                                activeOpacity={0.6}
-                                                className="ml-1 p-1 z-50"
-                                                style={{ zIndex: 50 }}
-                                            >
-                                                <ChevronDown
-                                                    size={18}
-                                                    strokeWidth={2.5}
-                                                    color="#AB8BFF"
-                                                    style={{
-                                                        transform: [{ rotate: showEpisodeActions ? '180deg' : '0deg' }],
-                                                        opacity: 1,
-                                                        zIndex: 50,
-                                                    }}
-                                                />
-                                            </TouchableOpacity>
-                                        </View>
-                                    </View>
-
-                                    {/* Mark All / Clear All buttons - Collapsible */}
-                                    {showEpisodeActions && (
-                                        <View className="flex-row gap-x-2 mb-4">
-                                            <TouchableOpacity
-                                                onPress={() => onMarkAllSeason?.(true)}
-                                                activeOpacity={0.7}
-                                                className="flex-1 bg-accent/15 border border-accent px-3 py-2 rounded-lg items-center"
-                                            >
-                                                <Text className="text-accent text-[12px] font-semibold">Mark All</Text>
-                                            </TouchableOpacity>
-                                            <TouchableOpacity
-                                                onPress={() => onMarkAllSeason?.(false)}
-                                                activeOpacity={0.7}
-                                                className="flex-1 bg-red-500/15 border border-red-500/50 px-3 py-2 rounded-lg items-center"
-                                            >
-                                                <Text className="text-red-400 text-[12px] font-semibold">Clear All</Text>
-                                            </TouchableOpacity>
+                                            </ScrollView>
                                         </View>
                                     )}
 
@@ -433,7 +451,7 @@ export default function MediaDetailContent({
                     {/* Recommended For You */}
                     {recommended && recommended.length > 0 && (
                         <View className="mt-6">
-                            <Text className="text-base font-semibold text-white mb-3">
+                            <Text className="mb-3 text-base font-semibold text-white">
                                 Recommended For You
                             </Text>
                             <FlatList
@@ -472,12 +490,12 @@ export default function MediaDetailContent({
                 onRequestClose={() => onStatusModalToggle(false)}
             >
                 <TouchableOpacity
-                    className="flex-1 justify-end bg-black/60"
+                    className="justify-end flex-1 bg-black/60"
                     activeOpacity={1}
                     onPress={() => onStatusModalToggle(false)}
                 >
-                    <View className="rounded-t-3xl bg-dark-100 px-6 pt-6 pb-10">
-                        <Text className="text-lg font-bold text-center text-white mb-5">
+                    <View className="px-6 pt-6 pb-10 rounded-t-3xl bg-dark-100">
+                        <Text className="mb-5 text-lg font-bold text-center text-white">
                             {watchlistItem ? 'Change Status' : 'Add to Watchlist'}
                         </Text>
                         {STATUS_OPTIONS.map((option) => (

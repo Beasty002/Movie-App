@@ -3,7 +3,7 @@ import { discoverMovies, discoverTV, searchDramas, searchMovies } from '@/servic
 import type { TMDBDrama } from '@/types';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { Film, Search, Sliders, XCircle } from 'lucide-react-native';
+import { Film, Flame, Search, Sliders, XCircle } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
   FlatList,
@@ -586,9 +586,12 @@ export default function SearchScreen() {
           )}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120, flexGrow: 1 }}
           ListHeaderComponent={() => (
-            <Text className="mt-2 mb-4 text-lg font-bold text-white">
-              {filter === 'all' ? '🔥 Trending Now' : filter === 'tv' ? '📺 Trending TV & Anime' : '🎬 Trending Movies'}
-            </Text>
+            <View className="flex-row items-center gap-2 mt-2 mb-4">
+              <Flame size={20} color="#AB8BFF" strokeWidth={2} />
+              <Text className="text-lg font-bold text-white">
+                {filter === 'all' ? 'Trending Now' : filter === 'tv' ? 'Trending TV & Anime' : 'Trending Movies'}
+              </Text>
+            </View>
           )}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
