@@ -4,15 +4,15 @@ import DirectorCard from '@/components/media/DirectorCard';
 import { getImageUrl } from '@/services/tmdb';
 import type { TMDBCast, TMDBDrama, TMDBEpisode, WatchlistStatus } from '@/types';
 import { useRouter } from 'expo-router';
-import { Bookmark, Check, Trash2 } from 'lucide-react-native';
-import { useMemo } from 'react';
+import { Bookmark, Check, ChevronDown, Trash2 } from 'lucide-react-native';
+import { useMemo, useState } from 'react';
 import {
     FlatList,
     Modal,
     ScrollView,
     Text,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
 
 const STATUS_OPTIONS = [
@@ -81,6 +81,7 @@ interface MediaDetailContentProps {
     onSeasonChange?: (season: number) => void;
     isEpisodeWatched?: (episodeNumber: number) => boolean;
     onToggleEpisode?: (episodeNumber: number) => void;
+    onMarkAllSeason?: (markAsWatched: boolean) => void;
     isDrama?: boolean;
 }
 
@@ -101,9 +102,11 @@ export default function MediaDetailContent({
     onSeasonChange,
     isEpisodeWatched,
     onToggleEpisode,
+    onMarkAllSeason,
     isDrama = false,
 }: MediaDetailContentProps) {
     const router = useRouter();
+    const [showEpisodeActions, setShowEpisodeActions] = useState(false);
 
     const backdropUrl = getImageUrl(media.backdrop_path, 'w780');
     const posterUrl = getImageUrl(media.poster_path, 'w300');
@@ -315,27 +318,68 @@ export default function MediaDetailContent({
                         <View className="mt-5">
                             <View className="flex-row items-center justify-between mb-3">
                                 <Text className="text-base font-semibold text-white">Episodes</Text>
-                                {media.number_of_seasons && media.number_of_seasons > 1 && (
-                                    <View className="flex-row gap-x-2">
-                                        {Array.from(
-                                            { length: media.number_of_seasons },
-                                            (_, i) => i + 1,
-                                        ).map((season) => (
-                                            <TouchableOpacity
-                                                key={season}
-                                                onPress={() => onSeasonChange?.(season)}
-                                                className={`px-3 py-1 rounded-full ${selectedSeason === season ? 'bg-accent' : 'bg-dark-100'}`}
-                                            >
-                                                <Text
-                                                    className={`text-[12px] font-medium ${selectedSeason === season ? 'text-primary' : 'text-light-200'}`}
+                                <View className="flex-row items-center gap-x-2">
+                                    {media.number_of_seasons && media.number_of_seasons > 1 && (
+                                        <View className="flex-row gap-x-2">
+                                            {Array.from(
+                                                { length: media.number_of_seasons },
+                                                (_, i) => i + 1,
+                                            ).map((season) => (
+                                                <TouchableOpacity
+                                                    key={season}
+                                                    onPress={() => onSeasonChange?.(season)}
+                                                    className={`px-3 py-1 rounded-full ${selectedSeason === season ? 'bg-accent' : 'bg-dark-100'}`}
                                                 >
-                                                    S{season}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                )}
+                                                    <Text
+                                                        className={`text-[12px] font-medium ${selectedSeason === season ? 'text-primary' : 'text-light-200'}`}
+                                                    >
+                                                        S{season}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    )}
+                                    {/* Toggle Episode Actions - Icon Only */}
+                                    <TouchableOpacity
+                                        onPress={() => setShowEpisodeActions(!showEpisodeActions)}
+                                        activeOpacity={0.6}
+                                        className="ml-1 p-1 z-50"
+                                        style={{ zIndex: 50 }}
+                                    >
+                                        <ChevronDown
+                                            size={18}
+                                            strokeWidth={2.5}
+                                            color="#AB8BFF"
+                                            style={{
+                                                transform: [{ rotate: showEpisodeActions ? '180deg' : '0deg' }],
+                                                opacity: 1,
+                                                zIndex: 50,
+                                            }}
+                                        />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
+
+                            {/* Mark All / Clear All buttons - Collapsible */}
+                            {showEpisodeActions && (
+                                <View className="flex-row gap-x-2 mb-4">
+                                    <TouchableOpacity
+                                        onPress={() => onMarkAllSeason?.(true)}
+                                        activeOpacity={0.7}
+                                        className="flex-1 bg-accent/15 border border-accent px-3 py-2 rounded-lg items-center"
+                                    >
+                                        <Text className="text-accent text-[12px] font-semibold">Mark All</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => onMarkAllSeason?.(false)}
+                                        activeOpacity={0.7}
+                                        className="flex-1 bg-red-500/15 border border-red-500/50 px-3 py-2 rounded-lg items-center"
+                                    >
+                                        <Text className="text-red-400 text-[12px] font-semibold">Clear All</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+
                             {episodes.map((ep: TMDBEpisode) => {
                                 const isReleased = !!ep.air_date;
                                 return (

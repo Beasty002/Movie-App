@@ -4,21 +4,23 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useProgressStore } from '@/store/useProgressStore';
 import { useWatchlistStore } from '@/store/useWatchlistStore';
 import type { WatchlistStatus } from '@/types';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Text, TouchableOpacity, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 
 export default function DramaDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const dramaId = parseInt(id, 10);
+  const queryClient = useQueryClient();
 
   const { user } = useAuthStore();
   const { addToWatchlist, updateStatus, removeFromWatchlist, getItemByMedia } = useWatchlistStore();
   const { fetchProgress, markEpisodeWatched, unmarkEpisode, isEpisodeWatched } = useProgressStore();
 
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [synopsisExpanded, setSynopsisExpanded] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState(1);
 
@@ -65,6 +67,8 @@ export default function DramaDetailScreen() {
             text1: 'Episode marked as watched',
           });
         }
+        // Trigger store refresh to update watchlist reactivity
+        await queryClient.invalidateQueries({ queryKey: ['watchlist'] });
       } catch (error) {
         Toast.show({
           type: 'error',
@@ -72,7 +76,36 @@ export default function DramaDetailScreen() {
         });
       }
     },
-    [user, dramaId, isEpisodeWatched, markEpisodeWatched, unmarkEpisode],
+    [user, dramaId, isEpisodeWatched, markEpisodeWatched, unmarkEpisode, queryClient],
+  );
+
+  const handleMarkAllSeason = useCallback(
+    async (markAsWatched: boolean) => {
+      if (!user || !episodes) return;
+      try {
+        const releasedEpisodes = episodes.filter((ep) => ep.air_date);
+        for (const episode of releasedEpisodes) {
+          const isWatched = isEpisodeWatched(dramaId, 'kdrama', episode.episode_number);
+          if (markAsWatched && !isWatched) {
+            await markEpisodeWatched(user.id, dramaId, 'kdrama', episode.episode_number);
+          } else if (!markAsWatched && isWatched) {
+            await unmarkEpisode(user.id, dramaId, 'kdrama', episode.episode_number);
+          }
+        }
+        Toast.show({
+          type: 'success',
+          text1: markAsWatched ? 'Season marked as watched' : 'Season marked as unwatched',
+        });
+        // Trigger store refresh to update watchlist reactivity
+        await queryClient.invalidateQueries({ queryKey: ['watchlist'] });
+      } catch (error) {
+        Toast.show({
+          type: 'error',
+          text1: 'Failed to update season',
+        });
+      }
+    },
+    [user, dramaId, episodes, isEpisodeWatched, markEpisodeWatched, unmarkEpisode, queryClient],
   );
 
   const handleAddOrUpdate = useCallback(
@@ -118,27 +151,24 @@ export default function DramaDetailScreen() {
 
   const handleRemove = useCallback(() => {
     if (!watchlistItem) return;
-    Alert.alert('Remove from Watchlist', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await removeFromWatchlist(watchlistItem.id);
-            Toast.show({
-              type: 'success',
-              text1: 'Removed from watchlist',
-            });
-          } catch (error) {
-            Toast.show({
-              type: 'error',
-              text1: 'Failed to remove',
-            });
-          }
-        },
-      },
-    ]);
+    setShowRemoveModal(true);
+  }, [watchlistItem]);
+
+  const confirmRemove = useCallback(async () => {
+    if (!watchlistItem) return;
+    setShowRemoveModal(false);
+    try {
+      await removeFromWatchlist(watchlistItem.id);
+      Toast.show({
+        type: 'success',
+        text1: 'Removed from watchlist',
+      });
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Failed to remove',
+      });
+    }
   }, [watchlistItem, removeFromWatchlist]);
 
   if (isLoading) {
@@ -158,24 +188,62 @@ export default function DramaDetailScreen() {
   }
 
   return (
-    <MediaDetailContent
-      media={drama}
-      watchlistItem={watchlistItem}
-      synopsis={drama.overview}
-      synopsisExpanded={synopsisExpanded}
-      onSynopsisToggle={() => setSynopsisExpanded((p) => !p)}
-      showStatusModal={showStatusModal}
-      onStatusModalToggle={setShowStatusModal}
-      onStatusSelect={handleAddOrUpdate}
-      onRemove={handleRemove}
-      recommended={recommended}
-      networks={drama.networks}
-      episodes={episodes}
-      selectedSeason={selectedSeason}
-      onSeasonChange={setSelectedSeason}
-      isDrama
-      isEpisodeWatched={(episodeNumber) => isEpisodeWatched(dramaId, 'kdrama', episodeNumber)}
-      onToggleEpisode={handleToggleEpisode}
-    />
+    <>
+      <MediaDetailContent
+        media={drama}
+        watchlistItem={watchlistItem}
+        synopsis={drama.overview}
+        synopsisExpanded={synopsisExpanded}
+        onSynopsisToggle={() => setSynopsisExpanded((p) => !p)}
+        showStatusModal={showStatusModal}
+        onStatusModalToggle={setShowStatusModal}
+        onStatusSelect={handleAddOrUpdate}
+        onRemove={handleRemove}
+        recommended={recommended}
+        networks={drama.networks}
+        episodes={episodes}
+        selectedSeason={selectedSeason}
+        onSeasonChange={setSelectedSeason}
+        isDrama
+        isEpisodeWatched={(episodeNumber) => isEpisodeWatched(dramaId, 'kdrama', episodeNumber)}
+        onToggleEpisode={handleToggleEpisode}
+        onMarkAllSeason={handleMarkAllSeason}
+      />
+
+      {/* Remove Confirmation Modal */}
+      <Modal
+        visible={showRemoveModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowRemoveModal(false)}
+      >
+        <TouchableOpacity
+          className="items-center justify-center flex-1 bg-black/60"
+          activeOpacity={1}
+          onPress={() => setShowRemoveModal(false)}
+        >
+          <View className="px-6 py-6 bg-dark-100 rounded-2xl w-80">
+            <Text className="mb-2 text-lg font-bold text-white">Remove from Watchlist?</Text>
+            <Text className="mb-6 text-sm text-light-300">This action cannot be undone.</Text>
+            <View className="flex-row gap-x-3">
+              <TouchableOpacity
+                onPress={() => setShowRemoveModal(false)}
+                activeOpacity={0.7}
+                className="items-center flex-1 py-3 border rounded-lg border-light-200"
+              >
+                <Text className="text-sm font-semibold text-light-200">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={confirmRemove}
+                activeOpacity={0.7}
+                className="items-center flex-1 py-3 border border-red-500 rounded-lg bg-red-500/30"
+              >
+                <Text className="text-sm font-semibold text-red-400">Remove</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </>
   );
 }

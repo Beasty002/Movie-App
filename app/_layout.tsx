@@ -11,9 +11,10 @@ const queryClient = new QueryClient();
 const toastConfig = {
   success: (props: any) => (
     <View
-      className="mx-4 bg-green-500/20 border border-green-500 rounded-lg px-4 py-3 flex-row items-center gap-3"
+      className="mx-4 bg-black/60 border border-green-500/60 rounded-lg px-4 py-3 flex-row items-center gap-3"
       style={{
         marginBottom: 20,
+        backgroundColor: 'rgba(0, 0, 0, 0.85)',
       }}
     >
       <Text className="text-green-400 text-xl">✓</Text>
@@ -24,9 +25,10 @@ const toastConfig = {
   ),
   error: (props: any) => (
     <View
-      className="mx-4 bg-red-500/20 border border-red-500 rounded-lg px-4 py-3 flex-row items-center gap-3"
+      className="mx-4 bg-black/60 border border-red-500/60 rounded-lg px-4 py-3 flex-row items-center gap-3"
       style={{
         marginBottom: 20,
+        backgroundColor: 'rgba(0, 0, 0, 0.85)',
       }}
     >
       <Text className="text-red-400 text-xl">✕</Text>

@@ -3,7 +3,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useWatchlistStore } from '@/store/useWatchlistStore';
 import type { WatchlistStatus, WatchlistWithProgress } from '@/types';
 import { useRouter } from 'expo-router';
-import { Check, Film } from 'lucide-react-native';
+import { Check, ChevronDown, Film } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -144,11 +144,12 @@ export default function WatchlistScreen() {
         </View>
         <TouchableOpacity
           onPress={() => setShowSortMenu((p) => !p)}
-          className="bg-dark-100 px-3 py-1.5 rounded-full"
+          className="bg-dark-100 px-3 py-1.5 rounded-full flex-row items-center gap-x-1"
         >
           <Text className="text-light-200 text-[13px]">
-            {SORT_OPTIONS.find((s) => s.key === activeSort)?.label} ↕
+            {SORT_OPTIONS.find((s) => s.key === activeSort)?.label}
           </Text>
+          <ChevronDown size={16} strokeWidth={2} color="#B0B0B0" />
         </TouchableOpacity>
       </View>
 
