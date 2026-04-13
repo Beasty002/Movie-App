@@ -23,7 +23,7 @@ export interface TMDBDrama {
   status?: string;
   networks?: { id: number; name: string; logo_path: string }[];
   genres?: { id: number; name: string }[];
-  credits?: { cast: TMDBCast[] };
+  credits?: { cast: TMDBCast[]; crew?: TMDBCrew[] };
   media_type?: 'tv' | 'movie';
 }
 
@@ -33,6 +33,14 @@ export interface TMDBCast {
   character: string;
   profile_path: string | null;
   order: number;
+}
+
+export interface TMDBCrew {
+  id: number;
+  name: string;
+  job: string;
+  profile_path: string | null;
+  department: string;
 }
 
 export interface TMDBEpisode {
