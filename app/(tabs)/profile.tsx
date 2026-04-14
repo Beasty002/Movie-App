@@ -208,7 +208,7 @@ export default function ProfileScreen() {
       <View className="px-4 gap-y-3">
         <ActionRow
           label="Edit Profile"
-          onPress={() => router.push('/settings/account' as never)}
+          onPress={() => router.push('/settings/account')}
         />
         <ActionRow
           label="My Poll History"
@@ -216,7 +216,7 @@ export default function ProfileScreen() {
         />
         <ActionRow
           label="Settings"
-          onPress={() => router.push('/settings/index' as never)}
+          onPress={() => router.push('/settings' as never)}
         />
         <ActionRow
           label="Sign Out"

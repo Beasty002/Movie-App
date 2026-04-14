@@ -111,6 +111,7 @@ export default function RootLayout() {
         <Stack.Screen name="poll/create" options={{ headerShown: false }} />
         <Stack.Screen name="poll/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="poll/history" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ headerShown: false }} />
       </Stack>
       <Toast config={toastConfig} position="bottom" bottomOffset={60} />
     </QueryClientProvider>
