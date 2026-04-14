@@ -6,13 +6,28 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "buildEnvironmentVariables": {
+          "GRADLE_OPTS": "-Dorg.gradle.internal.http.connectionTimeout=60000 -Dorg.gradle.internal.http.readTimeout=60000"
+        }
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "buildEnvironmentVariables": {
+          "GRADLE_OPTS": "-Dorg.gradle.internal.http.connectionTimeout=60000 -Dorg.gradle.internal.http.readTimeout=60000"
+        }
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "android": {
+        "buildEnvironmentVariables": {
+          "GRADLE_OPTS": "-Dorg.gradle.internal.http.connectionTimeout=60000 -Dorg.gradle.internal.http.readTimeout=60000"
+        }
+      }
     }
   },
   "submit": {
