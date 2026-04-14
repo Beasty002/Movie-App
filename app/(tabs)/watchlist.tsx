@@ -3,7 +3,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useWatchlistStore } from '@/store/useWatchlistStore';
 import type { WatchlistStatus, WatchlistWithProgress } from '@/types';
 import { useRouter } from 'expo-router';
-import { Check, ChevronDown, Film } from 'lucide-react-native';
+import { Check, ChevronDown, Download, Film, Upload } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -139,27 +139,41 @@ export default function WatchlistScreen() {
   return (
     <View className="flex-1 bg-primary">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 pt-14 pb-3">
+      <View className="flex-row items-center justify-between px-4 pb-3 pt-14">
         <View>
-          <Text className="text-white font-bold text-2xl">My Watchlist</Text>
+          <Text className="text-2xl font-bold text-white">My Watchlist</Text>
           <Text className="text-light-300 text-[13px]">
             {items.length} {items.length === 1 ? 'title' : 'titles'}
           </Text>
         </View>
-        <TouchableOpacity
-          onPress={() => setShowSortMenu((p) => !p)}
-          className="bg-dark-100 px-3 py-1.5 rounded-full flex-row items-center gap-x-1"
-        >
-          <Text className="text-light-200 text-[13px]">
-            {SORT_OPTIONS.find((s) => s.key === activeSort)?.label}
-          </Text>
-          <ChevronDown size={16} strokeWidth={2} color="#B0B0B0" />
-        </TouchableOpacity>
+        <View className="flex-row items-center gap-2">
+          <TouchableOpacity
+            onPress={() => router.push('/watchlist/export' as never)}
+            className="bg-dark-100 px-3 py-1.5 rounded-full"
+          >
+            <Upload size={18} color="#B0B0B0" strokeWidth={2} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push('/watchlist/import' as never)}
+            className="bg-dark-100 px-3 py-1.5 rounded-full"
+          >
+            <Download size={18} color="#B0B0B0" strokeWidth={2} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setShowSortMenu((p) => !p)}
+            className="bg-dark-100 px-3 py-1.5 rounded-full flex-row items-center gap-x-1"
+          >
+            <Text className="text-light-200 text-[13px]">
+              {SORT_OPTIONS.find((s) => s.key === activeSort)?.label}
+            </Text>
+            <ChevronDown size={16} strokeWidth={2} color="#B0B0B0" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Sort dropdown */}
       {showSortMenu && (
-        <View className="mx-4 bg-dark-100 rounded-xl overflow-hidden mb-2 border border-accent/30">
+        <View className="mx-4 mb-2 overflow-hidden border bg-dark-100 rounded-xl border-accent/30">
           {SORT_OPTIONS.map((opt) => (
             <TouchableOpacity
               key={opt.key}
@@ -167,7 +181,7 @@ export default function WatchlistScreen() {
                 setActiveSort(opt.key);
                 setShowSortMenu(false);
               }}
-              className="px-4 py-3 flex-row items-center justify-between border-b border-dark-200 last:border-b-0"
+              className="flex-row items-center justify-between px-4 py-3 border-b border-dark-200 last:border-b-0"
             >
               <Text className="text-white text-[13px]">{opt.label}</Text>
               {activeSort === opt.key && <Check size={18} color="#AB8BFF" strokeWidth={2} />}
@@ -179,7 +193,7 @@ export default function WatchlistScreen() {
       {/* Filters Row */}
       <View className="px-4 mb-4">
         {/* Status Label and Filter */}
-        <Text className="text-light-300 text-xs mb-2 uppercase tracking-wider">Status</Text>
+        <Text className="mb-2 text-xs tracking-wider uppercase text-light-300">Status</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -206,7 +220,7 @@ export default function WatchlistScreen() {
 
       {/* Media Type Filter */}
       <View className="px-4 mb-4">
-        <Text className="text-light-300 text-xs mb-2 uppercase tracking-wider">Content Type</Text>
+        <Text className="mb-2 text-xs tracking-wider uppercase text-light-300">Content Type</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -233,7 +247,7 @@ export default function WatchlistScreen() {
 
       {/* Content */}
       {isLoading && items.length === 0 ? (
-        <View className="flex-1 items-center justify-center">
+        <View className="items-center justify-center flex-1">
           <ActivityIndicator color="#AB8BFF" />
         </View>
       ) : (
@@ -264,18 +278,26 @@ export default function WatchlistScreen() {
             />
           }
           ListEmptyComponent={
-            <View className="flex-1 items-center justify-center pt-20">
+            <View className="items-center justify-center flex-1 pt-20">
               <Film size={48} color="#AB8BFF" strokeWidth={2} />
-              <Text className="text-light-300 text-base text-center mt-3">
+              <Text className="mt-3 text-base text-center text-light-300">
                 {EMPTY_MESSAGES[activeFilter]}
               </Text>
               {activeFilter === 'all' && (
-                <TouchableOpacity
-                  onPress={() => router.push('/search')}
-                  className="bg-accent px-6 py-2 rounded-lg mt-4"
-                >
-                  <Text className="text-primary font-bold">Start Exploring</Text>
-                </TouchableOpacity>
+                <View className="flex-row gap-3 mt-4">
+                  <TouchableOpacity
+                    onPress={() => router.push('/search')}
+                    className="px-6 py-2 rounded-lg bg-accent"
+                  >
+                    <Text className="font-bold text-primary">Start Exploring</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => router.push('/watchlist/import' as never)}
+                    className="px-6 py-2 rounded-lg bg-dark-100 border border-accent/50"
+                  >
+                    <Text className="font-bold text-accent">Import List</Text>
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
           }

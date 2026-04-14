@@ -1,5 +1,6 @@
 import DramaCard from '@/components/drama/DramaCard';
 import ImageWithFallback from '@/components/ImageWithFallback';
+import { images } from '@/constants/images';
 import { getImageUrl, getTrending } from '@/services/tmdb';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useWatchlistStore } from '@/store/useWatchlistStore';
@@ -110,7 +111,10 @@ export default function HomeScreen() {
     >
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 pb-4 pt-14">
-        <Text className="text-2xl font-bold tracking-wide text-white">Votch</Text>
+        <View className="flex-row items-center gap-x-2.5">
+          <Image source={images.votchIcon} className="w-9 h-9 rounded-lg" />
+          <Text className="text-3xl font-black tracking-wider text-accent">Votch</Text>
+        </View>
         <View className="flex-row items-center gap-x-3">
           <TouchableOpacity
             onPress={() => router.push('/poll/create' as never)}

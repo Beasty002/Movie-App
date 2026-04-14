@@ -114,6 +114,8 @@ export default function RootLayout() {
         <Stack.Screen name="genre/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="person/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
+        <Stack.Screen name="watchlist/import" options={{ headerShown: false }} />
+        <Stack.Screen name="watchlist/export" options={{ headerShown: false }} />
       </Stack>
       <Toast config={toastConfig} position="bottom" bottomOffset={60} />
     </QueryClientProvider>

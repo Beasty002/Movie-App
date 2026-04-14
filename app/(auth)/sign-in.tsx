@@ -1,18 +1,17 @@
+import { images } from '@/constants/images';
+import { useAuthStore } from '@/store/useAuthStore';
+import { Link } from 'expo-router';
 import { useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
   Text,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-  Image,
+  View,
 } from 'react-native';
-import { Link } from 'expo-router';
-import { useAuthStore } from '@/store/useAuthStore';
-import { icons } from '@/constants/icons';
-import { images } from '@/constants/images';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
@@ -33,7 +32,7 @@ export default function SignIn() {
       <Image source={images.bg} className="absolute w-full z-0" />
 
       <View className="flex-1 justify-center px-6">
-        <Image source={icons.logo} className="w-12 h-10 mx-auto mb-10" />
+        <Image source={images.votchIcon} className="w-16 h-16 mx-auto mb-6 rounded-full" />
 
         <Text className="text-3xl font-bold text-white text-center mb-2">
           Welcome back

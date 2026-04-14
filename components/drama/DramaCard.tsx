@@ -1,7 +1,6 @@
-import { icons } from '@/constants/icons';
 import { getImageUrl } from '@/services/tmdb';
 import type { TMDBDrama, WatchlistStatus } from '@/types';
-import { Image } from 'expo-image';
+import { Star } from 'lucide-react-native';
 import { Text, TouchableOpacity, View } from 'react-native';
 import ImageWithFallback from '../ImageWithFallback';
 
@@ -100,7 +99,7 @@ export default function DramaCard({ drama, onPress, showStatus, status, compact 
 
           <View className="flex-row items-center mt-1.5 gap-x-2">
             <View className="flex-row items-center gap-x-0.5">
-              <Image source={icons.star} style={{ width: 14, height: 14 }} tintColor="#AB8BFF" />
+              <Star size={14} color="#AB8BFF" fill="#AB8BFF" />
               <Text className="text-light-200 text-[12px] ml-0.5">{rating}</Text>
             </View>
             {showStatus && status ? <StatusBadge status={status} /> : null}
