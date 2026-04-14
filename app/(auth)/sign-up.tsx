@@ -1,3 +1,4 @@
+import { GradientBackground } from '@/components/ui/GradientBackground';
 import { images } from '@/constants/images';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Link } from 'expo-router';
@@ -48,8 +49,7 @@ export default function SignUp() {
       className="flex-1 bg-primary"
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <Image source={images.bg} className="absolute w-full z-0" />
-
+      <GradientBackground />
       <ScrollView
         contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
         keyboardShouldPersistTaps="handled"

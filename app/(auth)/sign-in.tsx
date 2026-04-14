@@ -1,3 +1,4 @@
+import { GradientBackground } from '@/components/ui/GradientBackground';
 import { images } from '@/constants/images';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Link } from 'expo-router';
@@ -29,8 +30,7 @@ export default function SignIn() {
       className="flex-1 bg-primary"
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <Image source={images.bg} className="absolute w-full z-0" />
-
+      <GradientBackground />
       <View className="flex-1 justify-center px-6">
         <Image source={images.votchIcon} className="w-16 h-16 mx-auto mb-6 rounded-full" />
 

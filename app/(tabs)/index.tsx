@@ -8,7 +8,7 @@ import type { TMDBDrama, WatchlistWithProgress } from '@/types';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Bell, Plus } from 'lucide-react-native';
+import { Bell, Clapperboard, Plus } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import {
   FlatList,
@@ -113,7 +113,10 @@ export default function HomeScreen() {
       <View className="flex-row items-center justify-between px-4 pb-4 pt-14">
         <View className="flex-row items-center gap-x-2.5">
           <Image source={images.votchIcon} className="w-9 h-9 rounded-lg" />
-          <Text className="text-3xl font-black tracking-wider text-accent">Votch</Text>
+          <View className="flex-row items-center gap-x-1">
+            <Text className="text-3xl font-black tracking-wider text-accent">Votch</Text>
+            <Clapperboard size={28} color="#AB8BFF" strokeWidth={2.5} />
+          </View>
         </View>
         <View className="flex-row items-center gap-x-3">
           <TouchableOpacity
