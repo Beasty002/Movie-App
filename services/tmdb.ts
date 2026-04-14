@@ -2,6 +2,9 @@ import type {
   TMDBCast,
   TMDBDrama,
   TMDBEpisode,
+  TMDBPersonCredit,
+  TMDBPersonDetail,
+  TMDBPersonSearchResponse,
   TMDBSearchResponse,
 } from '@/types';
 
@@ -184,4 +187,48 @@ export async function getRecommendedContent(
     ...item,
     media_type: type,
   }));
+}
+
+export async function searchPeople(
+  query: string,
+  page = 1,
+): Promise<TMDBPersonSearchResponse> {
+  return fetchTMDB<TMDBPersonSearchResponse>('/search/person', {
+    query: encodeURIComponent(query),
+    page: String(page),
+  });
+}
+
+export async function getPopularPeople(page = 1): Promise<TMDBPersonSearchResponse> {
+  return fetchTMDB<TMDBPersonSearchResponse>('/person/popular', {
+    page: String(page),
+  });
+}
+
+export async function getPersonDetail(id: number): Promise<TMDBPersonDetail> {
+  return fetchTMDB<TMDBPersonDetail>(`/person/${id}`);
+}
+
+export async function getPersonCombinedCredits(
+  id: number,
+): Promise<{ cast: TMDBPersonCredit[]; crew: TMDBPersonCredit[] }> {
+  return fetchTMDB<{ cast: TMDBPersonCredit[]; crew: TMDBPersonCredit[] }>(
+    `/person/${id}/combined_credits`,
+  );
+}
+
+export async function discoverByGenre(
+  type: 'tv' | 'movie',
+  genreId: number,
+  page = 1,
+): Promise<TMDBSearchResponse> {
+  const data = await fetchTMDB<TMDBSearchResponse>(`/discover/${type}`, {
+    with_genres: String(genreId),
+    sort_by: 'popularity.desc',
+    page: String(page),
+  });
+  return {
+    ...data,
+    results: data.results.map(item => ({ ...item, media_type: type })),
+  };
 }

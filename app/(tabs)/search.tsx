@@ -1,9 +1,10 @@
+import ImageWithFallback from '@/components/ImageWithFallback';
 import DramaCard from '@/components/drama/DramaCard';
-import { discoverMovies, discoverTV, searchDramas, searchMovies } from '@/services/tmdb';
-import type { TMDBDrama } from '@/types';
+import { discoverMovies, discoverTV, getImageUrl, getPopularPeople, searchDramas, searchMovies, searchPeople } from '@/services/tmdb';
+import type { TMDBDrama, TMDBPerson } from '@/types';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { Film, Flame, Search, Sliders, XCircle } from 'lucide-react-native';
+import { Film, Flame, Search, Sliders, User, Users, XCircle } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
   FlatList,
@@ -15,7 +16,7 @@ import {
   View
 } from 'react-native';
 
-type FilterType = 'all' | 'tv' | 'movie';
+type FilterType = 'all' | 'tv' | 'movie' | 'person';
 type SortBy = 'popularity.desc' | 'vote_average.desc' | 'primary_release_date.desc' | 'first_air_date.desc';
 
 interface ResultWithType extends TMDBDrama {
@@ -42,6 +43,43 @@ function SkeletonCard() {
         <View className="w-1/3 h-3 rounded bg-dark-200" />
       </View>
     </View>
+  );
+}
+
+function PersonCard({ person, onPress }: { person: TMDBPerson; onPress: () => void }) {
+  const photoUrl = getImageUrl(person.profile_path, 'w300');
+  const knownFor = person.known_for
+    ?.map(k => k.title ?? k.name)
+    .filter(Boolean)
+    .slice(0, 3)
+    .join(', ');
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      className="flex-row p-3 mb-3 bg-dark-100 rounded-xl items-center"
+    >
+      <ImageWithFallback
+        source={photoUrl ? { uri: photoUrl } : undefined}
+        style={{ width: 56, height: 56, borderRadius: 28 }}
+        contentFit="cover"
+      />
+      <View className="flex-1 ml-3">
+        <Text className="text-white font-bold text-[15px]" numberOfLines={1}>
+          {person.name}
+        </Text>
+        <View className="flex-row items-center gap-1.5 mt-0.5">
+          <Users size={12} color="#AB8BFF" strokeWidth={1.5} />
+          <Text className="text-accent text-[12px]">{person.known_for_department}</Text>
+        </View>
+        {knownFor ? (
+          <Text className="text-light-300 text-[12px] mt-0.5" numberOfLines={1}>
+            Known for: {knownFor}
+          </Text>
+        ) : null}
+      </View>
+      <User size={18} color="#9CA4AB" strokeWidth={1.5} />
+    </TouchableOpacity>
   );
 }
 
@@ -110,6 +148,21 @@ export default function SearchScreen() {
   const hasActiveFilters = advancedFilters.genreIds.length > 0 ||
     advancedFilters.yearMin ||
     advancedFilters.voteMinimum > 0;
+
+  // Search People
+  const { data: peopleData, isLoading: peopleLoading } = useQuery({
+    queryKey: ['search-people', debouncedQuery],
+    queryFn: () => searchPeople(debouncedQuery),
+    enabled: debouncedQuery.length > 0 && filter === 'person',
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const { data: popularPeopleData, isLoading: popularPeopleLoading } = useQuery({
+    queryKey: ['popular-people'],
+    queryFn: () => getPopularPeople(),
+    enabled: debouncedQuery.length === 0 && filter === 'person',
+    staleTime: 60 * 60 * 1000,
+  });
 
   // Search TV and Movies
   const { data: tvData, isLoading: tvLoading } = useQuery({
@@ -227,8 +280,14 @@ export default function SearchScreen() {
     return merged;
   })();
 
-  const showSkeleton = (tvLoading || movieLoading) && debouncedQuery.length > 0;
-  const showTrendingSkeleton = (trendingTvLoading || trendingMovieLoading) && debouncedQuery.length === 0;
+  const showSkeleton =
+    filter === 'person'
+      ? peopleLoading && debouncedQuery.length > 0
+      : (tvLoading || movieLoading) && debouncedQuery.length > 0;
+  const showTrendingSkeleton =
+    filter === 'person'
+      ? popularPeopleLoading && debouncedQuery.length === 0
+      : (trendingTvLoading || trendingMovieLoading) && debouncedQuery.length === 0;
 
   const handleResultPress = (item: ResultWithType) => {
     const route = item.media_type === 'movie' ? `/movie/${item.id}` : `/drama/${item.id}`;
@@ -423,26 +482,33 @@ export default function SearchScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 8 }}
         >
-          {(['all', 'tv', 'movie'] as FilterType[]).map(filterOption => (
-            <TouchableOpacity
-              key={filterOption}
-              onPress={() => setFilter(filterOption)}
-              activeOpacity={0.8}
-              style={{ height: 36, justifyContent: 'center' }}
-              className={`flex-row items-center gap-2 px-3 py-0 rounded-full flex-shrink-0 ${filter === filterOption ? 'bg-accent' : 'bg-dark-100'
-                }`}
-            >
-              <Film size={16} color={filter === filterOption ? '#030014' : '#AB8BFF'} strokeWidth={2} />
-              <Text
-                className={`text-sm font-medium ${filter === filterOption
-                  ? 'text-primary'
-                  : 'text-light-200'
-                  }`}
+          {(['all', 'tv', 'movie', 'person'] as FilterType[]).map(filterOption => {
+            const isActive = filter === filterOption;
+            const iconColor = isActive ? '#030014' : '#AB8BFF';
+            const icon =
+              filterOption === 'person'
+                ? <Users size={16} color={iconColor} strokeWidth={2} />
+                : <Film size={16} color={iconColor} strokeWidth={2} />;
+            const label =
+              filterOption === 'all' ? 'All'
+              : filterOption === 'tv' ? 'TV & Anime'
+              : filterOption === 'movie' ? 'Movies'
+              : 'Actors';
+            return (
+              <TouchableOpacity
+                key={filterOption}
+                onPress={() => setFilter(filterOption)}
+                activeOpacity={0.8}
+                style={{ height: 36, justifyContent: 'center' }}
+                className={`flex-row items-center gap-2 px-3 py-0 rounded-full flex-shrink-0 ${isActive ? 'bg-accent' : 'bg-dark-100'}`}
               >
-                {filterOption === 'all' ? 'All' : filterOption === 'tv' ? 'TV & Anime' : 'Movies'}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                {icon}
+                <Text className={`text-sm font-medium ${isActive ? 'text-primary' : 'text-light-200'}`}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
 
@@ -454,7 +520,7 @@ export default function SearchScreen() {
             <TextInput
               ref={inputRef}
               className="flex-1 text-white text-base py-3.5 ml-2"
-              placeholder="Search dramas, movies, anime..."
+              placeholder={filter === 'person' ? 'Search actors, directors...' : 'Search dramas, movies, anime...'}
               placeholderTextColor="#9CA4AB"
               value={query}
               onChangeText={setQuery}
@@ -469,13 +535,15 @@ export default function SearchScreen() {
               </TouchableOpacity>
             )}
           </View>
-          <TouchableOpacity
-            onPress={() => setShowFilterModal(true)}
-            className="items-center justify-center p-3 bg-dark-100 rounded-xl"
-            activeOpacity={0.7}
-          >
-            <Sliders size={20} color="#AB8BFF" strokeWidth={1.5} />
-          </TouchableOpacity>
+          {filter !== 'person' && (
+            <TouchableOpacity
+              onPress={() => setShowFilterModal(true)}
+              className="items-center justify-center p-3 bg-dark-100 rounded-xl"
+              activeOpacity={0.7}
+            >
+              <Sliders size={20} color="#AB8BFF" strokeWidth={1.5} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Active Filters Indicator */}
@@ -554,8 +622,57 @@ export default function SearchScreen() {
         </View>
       )}
 
-      {/* Search Results */}
-      {debouncedQuery.length > 0 && !showSkeleton && (
+      {/* Person search results */}
+      {filter === 'person' && debouncedQuery.length > 0 && !showSkeleton && (
+        <FlatList<TMDBPerson>
+          data={peopleData?.results ?? []}
+          keyExtractor={item => `person-${item.id}`}
+          renderItem={({ item }) => (
+            <PersonCard
+              person={item}
+              onPress={() => router.push(`/person/${item.id}` as never)}
+            />
+          )}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120, flexGrow: 1 }}
+          ListEmptyComponent={() => (
+            <View className="items-center justify-center flex-1 pt-20">
+              <Text className="text-base text-center text-light-300">
+                No actors found for "{debouncedQuery}"
+              </Text>
+            </View>
+          )}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        />
+      )}
+
+      {/* Popular people - Initial View (person mode) */}
+      {filter === 'person' && debouncedQuery.length === 0 && !showTrendingSkeleton && (
+        <FlatList<TMDBPerson>
+          data={popularPeopleData?.results ?? []}
+          keyExtractor={item => `person-${item.id}`}
+          renderItem={({ item }) => (
+            <PersonCard
+              person={item}
+              onPress={() => router.push(`/person/${item.id}` as never)}
+            />
+          )}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120, flexGrow: 1 }}
+          ListHeaderComponent={() => (
+            <View className="flex-row items-center gap-2 mt-2 mb-4">
+              <Flame size={20} color="#AB8BFF" strokeWidth={2} />
+              <Text className="text-lg font-bold text-white">Popular Actors</Text>
+            </View>
+          )}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        />
+      )}
+
+      {/* Media Search Results */}
+      {filter !== 'person' && debouncedQuery.length > 0 && !showSkeleton && (
         <FlatList<ResultWithType>
           data={results}
           keyExtractor={(item, idx) => `${item.media_type}-${item.id}-${idx}`}
@@ -574,7 +691,7 @@ export default function SearchScreen() {
       )}
 
       {/* Trending Content - Initial View */}
-      {debouncedQuery.length === 0 && !showTrendingSkeleton && (
+      {filter !== 'person' && debouncedQuery.length === 0 && !showTrendingSkeleton && (
         <FlatList<ResultWithType>
           data={trendingResults}
           keyExtractor={(item, idx) => `${item.media_type}-${item.id}-${idx}`}

@@ -50,10 +50,10 @@ function StatusIcon({ iconName }: { iconName: string }) {
     }
 }
 
-function CastCard({ cast }: { cast: TMDBCast }) {
+function CastCard({ cast, onPress }: { cast: TMDBCast; onPress: () => void }) {
     const photoUrl = getImageUrl(cast.profile_path, 'w300');
     return (
-        <View className="items-center w-20 mr-3">
+        <TouchableOpacity onPress={onPress} activeOpacity={0.7} className="items-center w-20 mr-3">
             <ImageWithFallback
                 source={photoUrl ? { uri: photoUrl } : undefined}
                 style={{ width: 64, height: 64, borderRadius: 32 }}
@@ -65,7 +65,7 @@ function CastCard({ cast }: { cast: TMDBCast }) {
             <Text className="text-light-300 text-[10px] text-center" numberOfLines={1}>
                 {cast.character}
             </Text>
-        </View>
+        </TouchableOpacity>
     );
 }
 
@@ -217,9 +217,18 @@ export default function MediaDetailContent({
                             contentContainerStyle={{ gap: 8 }}
                         >
                             {media.genres.map((g) => (
-                                <View key={g.id} className="px-3 py-1 border rounded-full border-accent/50">
+                                <TouchableOpacity
+                                    key={g.id}
+                                    onPress={() =>
+                                        router.push(
+                                            `/genre/${g.id}?name=${encodeURIComponent(g.name)}&mediaType=${isDrama ? 'tv' : 'movie'}` as never,
+                                        )
+                                    }
+                                    activeOpacity={0.7}
+                                    className="px-3 py-1 border rounded-full border-accent/50"
+                                >
                                     <Text className="text-accent text-[12px]">{g.name}</Text>
-                                </View>
+                                </TouchableOpacity>
                             ))}
                         </ScrollView>
                     )}
@@ -241,7 +250,7 @@ export default function MediaDetailContent({
                                             }
                                         />
                                         <Text
-                                            className={`font-semibold text-[14px] ${STATUS_COLORS[watchlistItem.status]}`}
+                                            className={`font-semibold text-[14px] ${STATUS_COLORS[watchlistItem.status as WatchlistStatus]}`}
                                         >
                                             {
                                                 STATUS_OPTIONS.find((o) => o.value === watchlistItem.status)?.label
@@ -297,7 +306,12 @@ export default function MediaDetailContent({
                             <FlatList
                                 data={cast.slice(0, 15)}
                                 keyExtractor={(item) => String(item.id)}
-                                renderItem={({ item }) => <CastCard cast={item} />}
+                                renderItem={({ item }) => (
+                                    <CastCard
+                                        cast={item}
+                                        onPress={() => router.push(`/person/${item.id}` as never)}
+                                    />
+                                )}
                                 horizontal
                                 showsHorizontalScrollIndicator={false}
                                 scrollEnabled
@@ -312,7 +326,12 @@ export default function MediaDetailContent({
                             <FlatList
                                 data={directors}
                                 keyExtractor={(item) => String(item.id)}
-                                renderItem={({ item }) => <DirectorCard director={item} />}
+                                renderItem={({ item }) => (
+                                    <DirectorCard
+                                        director={item}
+                                        onPress={() => router.push(`/person/${item.id}` as never)}
+                                    />
+                                )}
                                 horizontal
                                 showsHorizontalScrollIndicator={false}
                                 scrollEnabled
@@ -415,7 +434,7 @@ export default function MediaDetailContent({
                                         </View>
                                     )}
 
-                                    {episodes.map((ep: TMDBEpisode) => {
+                                    {(episodes ?? []).map((ep: TMDBEpisode) => {
                                         const isReleased = !!ep.air_date;
                                         return (
                                             <View
@@ -471,7 +490,7 @@ export default function MediaDetailContent({
                                                     item.media_type === 'movie'
                                                         ? `/movie/${item.id}`
                                                         : `/drama/${item.id}`;
-                                                router.push(route);
+                                                router.push(route as never);
                                             }}
                                         />
                                     </View>

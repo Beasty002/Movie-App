@@ -59,6 +59,58 @@ export interface TMDBSearchResponse {
   page: number;
 }
 
+export interface TMDBPerson {
+  id: number;
+  name: string;
+  profile_path: string | null;
+  known_for_department: string;
+  known_for?: Array<{
+    id: number;
+    title?: string;
+    name?: string;
+    poster_path: string | null;
+    media_type: 'tv' | 'movie';
+    vote_average: number;
+  }>;
+}
+
+export interface TMDBPersonDetail {
+  id: number;
+  name: string;
+  biography: string;
+  birthday: string | null;
+  deathday: string | null;
+  place_of_birth: string | null;
+  profile_path: string | null;
+  known_for_department: string;
+  also_known_as: string[];
+  gender: number;
+}
+
+export interface TMDBPersonCredit {
+  id: number;
+  title?: string;
+  name?: string;
+  original_title?: string;
+  original_name?: string;
+  poster_path: string | null;
+  vote_average: number;
+  vote_count: number;
+  release_date?: string;
+  first_air_date?: string;
+  media_type: 'tv' | 'movie';
+  character?: string;
+  job?: string;
+  genre_ids?: number[];
+}
+
+export interface TMDBPersonSearchResponse {
+  results: TMDBPerson[];
+  total_results: number;
+  total_pages: number;
+  page: number;
+}
+
 // ─── App types ───────────────────────────────────────────────────────────────
 export interface WatchlistItem {
   id: string;
