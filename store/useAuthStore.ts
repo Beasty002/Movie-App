@@ -1,6 +1,9 @@
 import { supabase } from '@/services/supabase';
 import { AuthError, Session, User } from '@supabase/supabase-js';
+import * as WebBrowser from 'expo-web-browser';
 import { create } from 'zustand';
+
+WebBrowser.maybeCompleteAuthSession();
 
 interface AuthState {
   user: User | null;
@@ -11,6 +14,7 @@ interface AuthState {
   initialize: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   clearError: () => void;
 }
@@ -89,6 +93,55 @@ export const useAuthStore = create<AuthState>((set) => ({
       const errorMsg = authError instanceof AuthError
         ? authError.message
         : authError.message;
+      set({ error: errorMsg });
+      throw err;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  signInWithGoogle: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        // Open the OAuth URL in a web browser
+        const result = await WebBrowser.openAuthSessionAsync(
+          data.url,
+          'votch://'
+        );
+
+        if (result.type === 'success') {
+          // Small delay to allow session to be established
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+
+          // Get the updated session
+          const { data: { session }, error: sessionError } =
+            await supabase.auth.getSession();
+
+          if (sessionError) throw sessionError;
+
+          if (session) {
+            set({ session, user: session.user });
+          }
+        } else if (result.type === 'cancel') {
+          set({ error: 'Google sign-in was cancelled' });
+        }
+      }
+    } catch (err) {
+      const authError = err as AuthError | Error;
+      const errorMsg =
+        authError instanceof AuthError
+          ? authError.message
+          : authError.message;
       set({ error: errorMsg });
       throw err;
     } finally {

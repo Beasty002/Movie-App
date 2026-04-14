@@ -2,6 +2,7 @@ import { GradientBackground } from '@/components/ui/GradientBackground';
 import { images } from '@/constants/images';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Link } from 'expo-router';
+import { Globe } from 'lucide-react-native';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -17,12 +18,17 @@ import {
 export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { signIn, isLoading, error, clearError } = useAuthStore();
+  const { signIn, signInWithGoogle, isLoading, error, clearError } = useAuthStore();
 
   const handleSignIn = async () => {
     if (!email.trim() || !password.trim()) return;
     clearError();
     await signIn(email.trim(), password);
+  };
+
+  const handleGoogleSignIn = async () => {
+    clearError();
+    await signInWithGoogle();
   };
 
   return (
@@ -85,6 +91,25 @@ export default function SignIn() {
               <Text className="text-primary font-bold text-base">Sign In</Text>
             )}
           </TouchableOpacity>
+
+          {/* Google Sign In */}
+          <View className="mt-6 mb-4">
+            <View className="flex-row items-center gap-x-3 mb-4">
+              <View className="flex-1 h-px bg-dark-100" />
+              <Text className="text-light-200 text-xs">OR</Text>
+              <View className="flex-1 h-px bg-dark-100" />
+            </View>
+
+            <TouchableOpacity
+              className="flex-row items-center justify-center gap-x-2 bg-dark-100 border border-dark-200 rounded-xl py-3.5"
+              onPress={handleGoogleSignIn}
+              disabled={isLoading}
+              activeOpacity={0.8}
+            >
+              <Globe size={20} color="#FFFFFF" />
+              <Text className="text-white font-semibold">Continue with Google</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View className="flex-row justify-center mt-8 gap-x-1">
