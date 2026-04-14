@@ -20,6 +20,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.votch.app",
+      "permissions": [],
       "intentFilters": [
         {
           "action": "VIEW",
@@ -30,7 +31,10 @@
               "host": "poll"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -57,6 +61,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "943d4860-1bc4-494e-b0dd-9a3b4ec104e0"
+      }
     }
   }
 }
