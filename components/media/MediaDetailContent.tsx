@@ -4,7 +4,7 @@ import DirectorCard from '@/components/media/DirectorCard';
 import { getImageUrl } from '@/services/tmdb';
 import type { TMDBCast, TMDBDrama, TMDBEpisode, WatchlistStatus } from '@/types';
 import { useRouter } from 'expo-router';
-import { Bookmark, Check, ChevronDown, ChevronUp, Trash2 } from 'lucide-react-native';
+import { Bookmark, Check, ChevronDown, ChevronUp, Pause, Trash2 } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import {
     ActivityIndicator,
@@ -19,6 +19,7 @@ import {
 const STATUS_OPTIONS = [
     { value: 'watching' as WatchlistStatus, label: 'Watching', icon: 'play' },
     { value: 'planning' as WatchlistStatus, label: 'Plan to Watch', icon: 'bookmark' },
+    { value: 'on_hold' as WatchlistStatus, label: 'On Hold', icon: 'pause' },
     { value: 'completed' as WatchlistStatus, label: 'Completed', icon: 'check' },
     { value: 'dropped' as WatchlistStatus, label: 'Dropped', icon: 'trash2' },
 ];
@@ -27,6 +28,7 @@ const STATUS_COLORS: Record<WatchlistStatus, string> = {
     watching: 'text-blue-400',
     completed: 'text-green-400',
     planning: 'text-gray-400',
+    on_hold: 'text-yellow-400',
     dropped: 'text-red-400',
 };
 
@@ -39,6 +41,8 @@ function StatusIcon({ iconName }: { iconName: string }) {
             return <Bookmark {...iconProps} color="#9CA4AB" />;
         case 'check':
             return <Check {...iconProps} color="#4ADE80" />;
+        case 'pause':
+            return <Pause {...iconProps} color="#FACC15" />;
         case 'trash2':
             return <Trash2 {...iconProps} color="#F87171" />;
         default:

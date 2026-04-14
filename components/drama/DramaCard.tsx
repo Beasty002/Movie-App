@@ -18,6 +18,7 @@ const STATUS_LABELS: Record<WatchlistStatus, string> = {
   watching: 'Watching',
   completed: 'Completed',
   planning: 'Planning',
+  on_hold: 'On Hold',
   dropped: 'Dropped',
 };
 
@@ -25,6 +26,7 @@ const STATUS_COLORS: Record<WatchlistStatus, string> = {
   watching: 'bg-blue-500/20 text-blue-400',
   completed: 'bg-green-500/20 text-green-400',
   planning: 'bg-gray-500/20 text-gray-400',
+  on_hold: 'bg-yellow-500/20 text-yellow-400',
   dropped: 'bg-red-500/20 text-red-400',
 };
 

@@ -25,6 +25,7 @@ const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'watching', label: 'Watching' },
   { key: 'planning', label: 'Planning' },
+  { key: 'on_hold', label: 'On Hold' },
   { key: 'completed', label: 'Completed' },
   { key: 'dropped', label: 'Dropped' },
 ];
@@ -47,6 +48,7 @@ const EMPTY_MESSAGES: Record<FilterTab, string> = {
   all: 'Start tracking your first drama',
   watching: 'Nothing currently watching',
   planning: 'No dramas planned yet',
+  on_hold: 'No dramas on hold',
   completed: 'No completed dramas yet',
   dropped: 'No dropped dramas',
 };
@@ -110,10 +112,11 @@ export default function WatchlistScreen() {
   };
 
   const showStatusOptions = (item: WatchlistWithProgress) => {
-    const options: WatchlistStatus[] = ['watching', 'planning', 'completed', 'dropped'];
+    const options: WatchlistStatus[] = ['watching', 'planning', 'on_hold', 'completed', 'dropped'];
     const statusLabels = {
       watching: 'Watching',
       planning: 'Plan to Watch',
+      on_hold: 'On Hold',
       completed: 'Completed',
       dropped: 'Dropped',
     };

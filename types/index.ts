@@ -1,6 +1,6 @@
 // ─── Media types ────────────────────────────────────────────────────────────
 export type MediaType = 'kdrama' | 'anime' | 'movie' | 'series';
-export type WatchlistStatus = 'planning' | 'watching' | 'completed' | 'dropped';
+export type WatchlistStatus = 'planning' | 'watching' | 'on_hold' | 'completed' | 'dropped';
 
 // ─── TMDB API types ──────────────────────────────────────────────────────────
 export interface TMDBDrama {

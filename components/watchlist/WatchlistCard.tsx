@@ -13,6 +13,7 @@ const STATUS_CONFIG: Record<WatchlistStatus, { label: string; bg: string; text: 
   watching: { label: 'Watching', bg: 'bg-blue-500/20', text: 'text-blue-400' },
   completed: { label: 'Completed', bg: 'bg-green-500/20', text: 'text-green-400' },
   planning: { label: 'Planning', bg: 'bg-gray-500/20', text: 'text-gray-400' },
+  on_hold: { label: 'On Hold', bg: 'bg-yellow-500/20', text: 'text-yellow-400' },
   dropped: { label: 'Dropped', bg: 'bg-red-500/20', text: 'text-red-400' },
 };
 
