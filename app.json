@@ -1,10 +1,11 @@
 {
   "expo": {
     "name": "Votch",
+    "displayName": "Votch",
     "slug": "Votch",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/votch-icon.jpg",
+    "icon": "./assets/images/votch-icon.png",
     "scheme": "votch",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -15,7 +16,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
-        "foregroundImage": "./assets/images/votch-icon.jpg"
+        "foregroundImage": "./assets/images/votch-icon.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -40,14 +41,14 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/votch-icon.jpg"
+      "favicon": "./assets/images/votch-icon.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/votch-icon.jpg",
+          "image": "./assets/images/votch-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#0F172A",

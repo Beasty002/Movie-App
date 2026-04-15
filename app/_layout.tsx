@@ -3,12 +3,16 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Linking from 'expo-linking';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import './globals.css';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { retry: 1 },
+  },
+});
 
 const toastConfig = {
   success: (props: { text1?: string }) => (
@@ -45,9 +49,13 @@ function AuthGate() {
   const { session, isInitialized, initialize } = useAuthStore();
   const router = useRouter();
   const segments = useSegments();
+  const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
-    initialize();
+    initialize().catch((err) => {
+      console.error('Auth init error:', err);
+      setInitError(err?.message || 'Failed to initialize auth');
+    });
   }, []);
 
   useEffect(() => {
@@ -61,6 +69,19 @@ function AuthGate() {
       router.replace('/(tabs)');
     }
   }, [session, isInitialized, segments]);
+
+  if (initError) {
+    return (
+      <View className="flex-1 items-center justify-center bg-black">
+        <Text className="text-red-500 text-base font-semibold px-6 text-center">
+          Error initializing app: {initError}
+        </Text>
+        <Text className="text-slate-400 text-sm px-6 text-center mt-4">
+          Please restart the app.
+        </Text>
+      </View>
+    );
+  }
 
   return null;
 }
