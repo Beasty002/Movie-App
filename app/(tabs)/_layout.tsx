@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { BarChart2, Bookmark, Home, Search, User } from 'lucide-react-native';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 interface TabIconProps {
   focused: boolean;
@@ -23,6 +23,9 @@ const TabIcon = ({ focused, icon: Icon }: TabIconProps) => {
 };
 
 export default function TabsLayout() {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 600;
+
   return (
     <Tabs
       screenOptions={{
@@ -35,7 +38,7 @@ export default function TabsLayout() {
           paddingVertical: 0,
           paddingTop: 0,
           paddingBottom: 0,
-          marginTop: 10,
+          marginTop: isMobile ? 10 : 0,
         },
         tabBarStyle: {
           position: 'absolute',

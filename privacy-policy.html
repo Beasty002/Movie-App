@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Votch</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            line-height: 1.6;
+            color: #1a1a1a;
+            background: #f5f7fa;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            height: 90vh;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 30px 35px;
+            text-align: center;
+            flex-shrink: 0;
+            border-radius: 16px 16px 0 0;
+        }
+
+        header h1 {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+
+        header p {
+            font-size: 0.95em;
+            opacity: 1;
+            font-weight: 300;
+            color: #ffffff;
+        }
+
+        main {
+            padding: 35px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            flex: 1;
+        }
+
+        main::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        main::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        main::-webkit-scrollbar-thumb {
+            background: #ddd;
+            border-radius: 3px;
+        }
+
+        main::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+
+        .last-updated {
+            color: #666;
+            font-size: 0.95em;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .toc {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 40px;
+        }
+
+        .toc h2 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .toc ol {
+            margin-left: 20px;
+            list-style-position: inside;
+        }
+
+        .toc li {
+            margin-bottom: 12px;
+            color: #555;
+        }
+
+        .toc a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .toc a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        section {
+            margin-bottom: 45px;
+        }
+
+        section h2 {
+            font-size: 1.8em;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+            display: inline-block;
+        }
+
+        section h3 {
+            font-size: 1.3em;
+            color: #555;
+            margin: 25px 0 12px 0;
+            font-weight: 600;
+        }
+
+        p {
+            margin-bottom: 15px;
+            color: #444;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin-left: 25px;
+            margin-bottom: 15px;
+        }
+
+        li {
+            margin-bottom: 10px;
+            color: #444;
+            line-height: 1.7;
+        }
+
+        strong {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .highlight {
+            background: #fff3cd;
+            padding: 20px;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        .contact-info {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            padding: 25px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+
+        .contact-info p {
+            margin-bottom: 10px;
+        }
+
+        .contact-info strong {
+            color: #667eea;
+        }
+
+        footer {
+            background: #f8f9fa;
+            padding: 20px 35px;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #e0e0e0;
+            font-size: 0.85em;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                height: 95vh;
+                border-radius: 12px;
+            }
+
+            header {
+                padding: 20px 20px;
+                border-radius: 12px 12px 0 0;
+            }
+
+            header h1 {
+                font-size: 1.5em;
+            }
+
+            main {
+                padding: 20px;
+            }
+
+            section h2 {
+                font-size: 1.3em;
+            }
+
+            section h3 {
+                font-size: 1em;
+            }
+
+            .toc {
+                padding: 15px;
+            }
+
+            .toc ol {
+                margin-left: 15px;
+            }
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #e83e8c;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Privacy Policy</h1>
+            <p>Votch — K-Drama, Anime & Movie Tracking</p>
+        </header>
+
+        <main>
+            <div class="last-updated">
+                <strong>Last Updated:</strong> April 2026
+            </div>
+
+            <div class="toc">
+                <h2>Table of Contents</h2>
+                <ol>
+                    <li><a href="#introduction">Introduction</a></li>
+                    <li><a href="#information-we-collect">Information We Collect</a></li>
+                    <li><a href="#how-we-use">How We Use Your Information</a></li>
+                    <li><a href="#third-party">Third-Party Services</a></li>
+                    <li><a href="#data-security">Data Security</a></li>
+                    <li><a href="#user-rights">Your Rights</a></li>
+                    <li><a href="#account-deletion">Account Deletion</a></li>
+                    <li><a href="#cookies">Cookies & Tracking</a></li>
+                    <li><a href="#changes">Changes to This Policy</a></li>
+                    <li><a href="#contact">Contact Us</a></li>
+                </ol>
+            </div>
+
+            <section id="introduction">
+                <h2>1. Introduction</h2>
+                <p>
+                    Welcome to Votch ("we," "us," "our," or "Company"). We are committed to protecting your privacy and ensuring you have a positive experience on our platform. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application and related services.
+                </p>
+                <p>
+                    Please read this Privacy Policy carefully. If you do not agree with our policies and practices, please do not use our services.
+                </p>
+            </section>
+
+            <section id="information-we-collect">
+                <h2>2. Information We Collect</h2>
+
+                <h3>2.1 Account Information</h3>
+                <p>When you create an account, we collect:</p>
+                <ul>
+                    <li>Email address and password (securely hashed)</li>
+                    <li>Username or display name</li>
+                    <li>Profile picture (optional)</li>
+                    <li>Bio or profile description (optional)</li>
+                </ul>
+
+                <h3>2.2 Watchlist & Activity Data</h3>
+                <p>We collect information about your viewing preferences:</p>
+                <ul>
+                    <li>Titles you add to your watchlist</li>
+                    <li>Watch progress (current episode, completion status)</li>
+                    <li>Ratings and reviews you provide</li>
+                    <li>Genres and preferences you select</li>
+                </ul>
+
+                <h3>2.3 Poll & Social Data</h3>
+                <p>When you participate in polls and social features:</p>
+                <ul>
+                    <li>Polls you create and their content</li>
+                    <li>Your votes on polls (including guest votes)</li>
+                    <li>Friend connections and social interactions</li>
+                    <li>Comments and messages (if applicable)</li>
+                </ul>
+
+                <h3>2.4 Technical Information</h3>
+                <p>We automatically collect certain technical data:</p>
+                <ul>
+                    <li>Device type, operating system, and version</li>
+                    <li>Device identifiers and advertising IDs</li>
+                    <li>App version and crash logs</li>
+                    <li>IP address and general location (country/region)</li>
+                    <li>Timestamps of your activities</li>
+                </ul>
+
+                <h3>2.5 Third-Party Data</h3>
+                <p>
+                    When you import watchlists from other platforms (MyAnimeList, MyDramaList, Letterboxd, Trakt, Kitsu), you authorize us to access and process your data from those services.
+                </p>
+            </section>
+
+            <section id="how-we-use">
+                <h2>3. How We Use Your Information</h2>
+                <p>We use the information we collect for the following purposes:</p>
+                <ul>
+                    <li><strong>Account Management:</strong> Creating and maintaining your account, authentication, and account recovery</li>
+                    <li><strong>Service Delivery:</strong> Providing Votch features, including watchlist management and poll functionality</li>
+                    <li><strong>Social Features:</strong> Enabling friend connections, polls, and shared experiences</li>
+                    <li><strong>Content Integration:</strong> Matching your watchlist data to titles from TMDB</li>
+                    <li><strong>Safety & Security:</strong> Detecting abuse and enforcing our Terms of Service</li>
+                </ul>
+            </section>
+
+            <section id="third-party">
+                <h2>4. Third-Party Services</h2>
+
+                <h3>4.1 Data Sharing</h3>
+                <p>
+                    We share information with the following third-party services to deliver our application:
+                </p>
+
+                <h3>4.2 Supabase (Backend & Database)</h3>
+                <ul>
+                    <li>We store all user data securely in Supabase's PostgreSQL database</li>
+                    <li>Supabase provides authentication, real-time features, and cloud storage</li>
+                    <li>Data is encrypted in transit and Row-Level Security (RLS) policies restrict unauthorized access</li>
+                    <li>Supabase Privacy Policy: <code>https://supabase.com/privacy</code></li>
+                </ul>
+
+                <h3>4.3 TMDB (The Movie Database API)</h3>
+                <ul>
+                    <li>We use TMDB API to fetch movie and drama metadata and images</li>
+                    <li>Your search queries are sent to TMDB to match local titles to their database</li>
+                    <li>TMDB images are never downloaded—we link directly from their CDN</li>
+                    <li>TMDB terms apply to their usage: <code>https://www.themoviedb.org/settings/privacy</code></li>
+                </ul>
+
+                <h3>4.4 No Sale of Data</h3>
+                <p>
+                    We do <strong>not</strong> sell, trade, or rent your personal information to third parties for marketing purposes.
+                </p>
+            </section>
+
+            <section id="data-security">
+                <h2>5. Data Security</h2>
+
+                <p>
+                    We implement appropriate technical and organizational measures to protect your data:
+                </p>
+                <ul>
+                    <li><strong>Encryption:</strong> Data is encrypted in transit (TLS/SSL) and sensitive data at rest</li>
+                    <li><strong>Authentication:</strong> Passwords are hashed using industry-standard algorithms</li>
+                    <li><strong>Row-Level Security:</strong> Database RLS policies ensure users can only access their own data</li>
+                    <li><strong>Access Control:</strong> Only authorized personnel can access user data for support purposes</li>
+                    <li><strong>Regular Audits:</strong> We monitor security logs and update our infrastructure</li>
+                </ul>
+
+                <div class="highlight">
+                    <strong>Note:</strong> While we implement best practices, no security system is completely impenetrable. We encourage you to use strong passwords to protect your account.
+                </div>
+            </section>
+
+            <section id="user-rights">
+                <h2>6. Your Rights</h2>
+
+                <h3>6.1 Data Access & Portability</h3>
+                <p>
+                    You have the right to request a copy of your personal data in a portable format. Use the export feature in the app or contact us.
+                </p>
+
+                <h3>6.2 Correction & Updates</h3>
+                <p>
+                    You can update or correct your account information at any time through your profile settings.
+                </p>
+
+                <h3>6.3 Data Deletion</h3>
+                <p>
+                    You may request deletion of your account and associated data. Please note that this action is permanent and cannot be undone. Some data may be retained for legal compliance.
+                </p>
+
+                <h3>6.4 GDPR & CCPA Compliance</h3>
+                <p>
+                    If you are in the EU, UK, or California, you have additional rights under GDPR and CCPA. Contact us to exercise these rights.
+                </p>
+            </section>
+
+            <section id="account-deletion">
+                <h2>7. Account Deletion</h2>
+
+                <h3>7.1 How to Request Account Deletion</h3>
+                <p>
+                    To request deletion of your account and all associated data, please contact us at: <strong>support@votchapp.com</strong>
+                </p>
+                <p>
+                    Include "Account Deletion Request" in your email subject line, and we will process your request within 30 days.
+                </p>
+
+                <h3>7.2 What Gets Deleted</h3>
+                <p>When your account is deleted, we remove:</p>
+                <ul>
+                    <li>Email address and login credentials</li>
+                    <li>Watchlist and viewing history</li>
+                    <li>Ratings and progress tracking</li>
+                    <li>Poll votes and preferences</li>
+                    <li>Profile information and biography</li>
+                    <li>Profile picture and personal settings</li>
+                    <li>All user-generated metadata</li>
+                </ul>
+
+                <h3>7.3 What May Be Retained</h3>
+                <p>
+                    For legal compliance and anonymization purposes, we may retain:
+                </p>
+                <ul>
+                    <li>Anonymized poll data and vote counts (your individual votes are deleted)</li>
+                    <li>Logs and usage records (stripped of personal identifiers)</li>
+                    <li>Legal or audit records required by law</li>
+                </ul>
+
+                <h3>7.4 Permanent Action</h3>
+                <p>
+                    <strong>Account deletion is permanent and cannot be undone.</strong> Once deleted, your account and all associated data cannot be recovered.
+                </p>
+            </section>
+
+            <section id="cookies">
+                <h2>7. Cookies & Tracking</h2>
+
+                <h3>7.1 Mobile App</h3>
+                <p>
+                    Our mobile app does not use traditional cookies. Instead, we use:
+                </p>
+                <ul>
+                    <li><strong>Authentication Tokens:</strong> Securely stored to keep you logged in</li>
+                    <li><strong>Local Storage:</strong> For app preferences and offline functionality</li>
+                    <li><strong>Analytics:</strong> Anonymous usage data to improve performance</li>
+                </ul>
+
+                <h3>7.2 Web Presence</h3>
+                <p>
+                    If you access our web resources, we may use cookies for authentication and analytics.
+                </p>
+            </section>
+
+            <section id="changes">
+                <h2>8. Changes to This Privacy Policy</h2>
+
+                <p>
+                    We may update this Privacy Policy at any time to reflect changes in our practices, technology, or legal requirements. We will notify you of significant changes via email or in-app notification. Your continued use of Votch after such updates constitutes your acceptance of the revised policy.
+                </p>
+            </section>
+
+            <section id="contact">
+                <h2>9. Contact Us</h2>
+
+                <p>
+                    If you have questions about this Privacy Policy, our data practices, or wish to exercise your privacy rights, please contact us:
+                </p>
+
+                <div class="contact-info">
+                    <p><strong>Email:</strong> privacy@votch.app</p>
+                    <p><strong>Company:</strong> Votch</p>
+                    <p><strong>Response Time:</strong> We aim to respond to privacy inquiries within 30 days.</p>
+                </div>
+
+                <p style="margin-top: 30px; font-style: italic;">
+                    Thank you for trusting Votch with your data. We are committed to protecting your privacy and providing a great experience.
+                </p>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Votch. All rights reserved. | Privacy Policy v1.0</p>
+        </footer>
+    </div>
+</body>
+</html>
