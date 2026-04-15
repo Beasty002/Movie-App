@@ -1,8 +1,8 @@
 import { getImageUrl, searchDramas, searchMovies } from '@/services/tmdb';
 import { usePollStore } from '@/store/usePollStore';
 import type { MediaType, PollOption, TMDBDrama, WatchTime } from '@/types';
-import { useQuery } from '@tanstack/react-query';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import {
@@ -206,12 +206,12 @@ export default function CreatePollScreen() {
         const month = String(customDate.getMonth() + 1).padStart(2, '0');
         const day = String(customDate.getDate()).padStart(2, '0');
         finalWatchDate = `${year}-${month}-${day}`;
-        
+
         // Convert time to HH:MM format
         const hours = String(customTime.getHours()).padStart(2, '0');
         const minutes = String(customTime.getMinutes()).padStart(2, '0');
         finalWatchCustomTime = `${hours}:${minutes}`;
-        
+
         finalWatchTime = null;
       }
 

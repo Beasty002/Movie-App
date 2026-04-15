@@ -3,7 +3,6 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { usePollStore } from '@/store/usePollStore';
 import type { MediaType, PollOption, TMDBDrama, WatchTime } from '@/types';
 import { useQuery } from '@tanstack/react-query';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -127,7 +126,7 @@ export default function EditPollScreen() {
                 const timeDate = new Date();
                 timeDate.setHours(hours || 0, minutes || 0, 0, 0);
                 setCustomTime(timeDate);
-                
+
                 // Convert ISO date (YYYY-MM-DD) to Date object
                 if (currentPoll.watch_date) {
                     const dateObj = new Date(currentPoll.watch_date);
