@@ -187,6 +187,15 @@ export interface PollOption {
   title_korean: string | null;
   poster: string | null;
   year: number | null;
+  suggested_by?: string | null;       // user ID of suggester (null = creator's original)
+  suggested_by_name?: string | null;  // display username of suggester
+}
+
+export type WatchTime = 'morning' | 'afternoon' | 'evening' | 'night' | 'anytime';
+
+export interface StreamingPlatform {
+  name: string;
+  url?: string | null; // direct show link or watch-party link (Teleparty, Kast, etc.)
 }
 
 export interface Poll {
@@ -201,6 +210,11 @@ export interface Poll {
   share_code: string;
   created_at: string;
   updated_at: string;
+  // optional scheduling & viewing context
+  watch_date?: string | null;              // ISO date string e.g. "2025-01-15"
+  watch_time?: WatchTime | null;
+  streaming_platforms?: StreamingPlatform[] | null;
+  allow_suggestions?: boolean;             // whether voters can add more options
 }
 
 export interface PollVote {

@@ -1,8 +1,8 @@
 import Toast from '@/components/ui/Toast';
-import { getImageUrl } from '@/services/tmdb';
+import { getImageUrl, searchDramas, searchMovies } from '@/services/tmdb';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePollStore } from '@/store/usePollStore';
-import type { PollOption } from '@/types';
+import type { PollOption, TMDBDrama, WatchTime } from '@/types';
 import * as Clipboard from 'expo-clipboard';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -12,27 +12,59 @@ import {
   CheckCircle,
   Clock,
   Copy,
+  ExternalLink,
   Film,
+  Link2,
+  MapPin,
+  Plus,
   RefreshCw,
   Share2,
   SquareX,
+  Tv,
   Users,
+  X,
 } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Animated,
+  FlatList,
+  Linking,
   Share,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { supabase } from '@/services/supabase';
+import { useQuery } from '@tanstack/react-query';
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const WATCH_TIME_LABELS: Record<WatchTime, string> = {
+  morning: 'Morning · 10 AM',
+  afternoon: 'Afternoon · 3 PM',
+  evening: 'Evening · 7 PM',
+  night: 'Night · 9 PM',
+  anytime: 'Anytime',
+};
+
+function formatWatchDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.round((d.getTime() - today.getTime()) / 86400000);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Tomorrow';
+  return d.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
 
 function formatTimeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -55,6 +87,17 @@ function getTimeRemaining(expiresAt: string, isActive: boolean): string {
   if (days > 0) return `${days} day${days > 1 ? 's' : ''} remaining`;
   if (hours > 0) return `${hours}h remaining`;
   return `${totalMinutes}m remaining`;
+}
+
+function mediaTypeFromTMDB(tmdbType: 'tv' | 'movie' | undefined) {
+  return tmdbType === 'movie' ? 'movie' as const : 'series' as const;
+}
+
+function yearFromDrama(drama: TMDBDrama): number | null {
+  const raw = drama.first_air_date ?? drama.release_date ?? null;
+  if (!raw) return null;
+  const parsed = parseInt(raw.slice(0, 4), 10);
+  return isNaN(parsed) ? null : parsed;
 }
 
 interface VoteBarProps {
@@ -133,7 +176,6 @@ function OptionCard({
         isSelected && !hasVoted ? 'border-2 border-accent' : 'border-2 border-transparent'
       } ${isUserVote && hasVoted ? 'border border-accent/40' : ''}`}
     >
-      {/* Poster */}
       {posterUrl ? (
         <Image
           source={{ uri: posterUrl }}
@@ -149,7 +191,6 @@ function OptionCard({
         </View>
       )}
 
-      {/* Content */}
       <View className="flex-1 ml-3">
         <View className="flex-row items-center justify-between">
           <Text
@@ -160,7 +201,6 @@ function OptionCard({
           >
             {option.title}
           </Text>
-          {/* Checkmark indicators */}
           {!hasVoted && isSelected && (
             <CheckCircle size={20} color="#AB8BFF" strokeWidth={2} />
           )}
@@ -173,7 +213,12 @@ function OptionCard({
           <Text className="text-light-300 text-[11px] mt-0.5">{option.year}</Text>
         ) : null}
 
-        {/* Results bar — only after voting */}
+        {option.suggested_by_name && (
+          <Text className="text-light-300 text-[10px] mt-0.5">
+            Suggested by @{option.suggested_by_name}
+          </Text>
+        )}
+
         {hasVoted && (
           <>
             <VoteBar
@@ -192,6 +237,179 @@ function OptionCard({
   );
 }
 
+// ── Suggest-a-show panel ──────────────────────────────────────────────────────
+interface SuggestPanelProps {
+  pollId: string;
+  existingOptions: PollOption[];
+  currentUserId: string | null;
+  currentUsername: string | null;
+  onDone: () => void;
+}
+
+function SuggestPanel({
+  pollId,
+  existingOptions,
+  currentUserId,
+  currentUsername,
+  onDone,
+}: SuggestPanelProps) {
+  const { suggestOption } = usePollStore();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  const { data: tvResults, isLoading: tvLoading } = useQuery({
+    queryKey: ['suggest-tv', debouncedQuery],
+    queryFn: () => searchDramas(debouncedQuery),
+    enabled: debouncedQuery.length > 1,
+    staleTime: 2 * 60 * 1000,
+  });
+  const { data: movieResults, isLoading: movieLoading } = useQuery({
+    queryKey: ['suggest-movie', debouncedQuery],
+    queryFn: () => searchMovies(debouncedQuery),
+    enabled: debouncedQuery.length > 1,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const results: TMDBDrama[] = (() => {
+    const tv = (tvResults?.results ?? []).map((d) => ({ ...d, media_type: 'tv' as const }));
+    const movies = (movieResults?.results ?? []).map((d) => ({ ...d, media_type: 'movie' as const }));
+    return [...tv, ...movies]
+      .sort((a, b) => (b.vote_average ?? 0) - (a.vote_average ?? 0))
+      .slice(0, 10);
+  })();
+
+  const showSkeleton = (tvLoading || movieLoading) && debouncedQuery.length > 1;
+
+  const isAlready = (drama: TMDBDrama) =>
+    existingOptions.some(
+      (o) => o.media_id === drama.id && o.media_type === mediaTypeFromTMDB(drama.media_type),
+    );
+
+  const handleSuggest = async (drama: TMDBDrama) => {
+    if (submitting || existingOptions.length >= 10) return;
+    setSubmitting(true);
+    try {
+      await suggestOption(pollId, {
+        media_id: drama.id,
+        media_type: mediaTypeFromTMDB(drama.media_type),
+        title: drama.name ?? drama.title ?? 'Unknown',
+        title_korean: null,
+        poster: drama.poster_path ?? null,
+        year: yearFromDrama(drama),
+        suggested_by: currentUserId,
+        suggested_by_name: currentUsername,
+      });
+      onDone();
+    } catch {
+      Alert.alert('Error', 'Could not add suggestion. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <View className="bg-dark-100 rounded-2xl overflow-hidden mb-4">
+      {/* Search input */}
+      <View className="flex-row items-center px-4 py-3 border-b border-dark-200">
+        <Film size={16} color="#9CA4AB" strokeWidth={1.5} />
+        <TextInput
+          className="flex-1 text-white text-sm py-1 ml-2"
+          placeholder="Search a show or movie to suggest…"
+          placeholderTextColor="#9CA4AB"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoFocus
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={8}>
+            <X size={14} color="#A8B5DB" strokeWidth={2} />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Results */}
+      {showSkeleton ? (
+        <View className="px-4 py-3">
+          {[1, 2].map((i) => (
+            <View key={i} className="flex-row items-center mb-3">
+              <View style={{ width: 36, height: 54, borderRadius: 6 }} className="bg-dark-200" />
+              <View className="flex-1 ml-3 gap-y-2">
+                <View className="h-3 bg-dark-200 rounded w-3/4" />
+                <View className="h-2.5 bg-dark-200 rounded w-1/3" />
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : results.length > 0 ? (
+        results.map((item, idx) => {
+          const already = isAlready(item);
+          const posterUrl = getImageUrl(item.poster_path, 'w300');
+          const year = yearFromDrama(item);
+          return (
+            <TouchableOpacity
+              key={`${item.media_type}-${item.id}-${idx}`}
+              onPress={() => handleSuggest(item)}
+              disabled={already || submitting}
+              activeOpacity={0.7}
+              className={`flex-row items-center px-4 py-3 border-b border-dark-200/50 ${
+                already ? 'opacity-40' : ''
+              }`}
+            >
+              {posterUrl ? (
+                <Image
+                  source={{ uri: posterUrl }}
+                  style={{ width: 36, height: 54, borderRadius: 6 }}
+                  contentFit="cover"
+                />
+              ) : (
+                <View
+                  style={{ width: 36, height: 54, borderRadius: 6 }}
+                  className="bg-dark-200 items-center justify-center"
+                >
+                  <Film size={14} color="#A8B5DB" strokeWidth={1.5} />
+                </View>
+              )}
+              <View className="flex-1 ml-3">
+                <Text className="text-white text-sm font-medium" numberOfLines={1}>
+                  {item.name ?? item.title}
+                </Text>
+                <Text className="text-light-300 text-xs mt-0.5">
+                  {item.media_type === 'movie' ? 'Movie' : 'TV Series'}
+                  {year ? ` · ${year}` : ''}
+                </Text>
+              </View>
+              {already ? (
+                <Check size={16} color="#AB8BFF" strokeWidth={2.5} />
+              ) : submitting ? (
+                <ActivityIndicator size="small" color="#AB8BFF" />
+              ) : (
+                <Plus size={16} color="#A8B5DB" strokeWidth={2} />
+              )}
+            </TouchableOpacity>
+          );
+        })
+      ) : debouncedQuery.length > 1 ? (
+        <Text className="text-light-300 text-sm text-center py-6">
+          No results for "{debouncedQuery}"
+        </Text>
+      ) : (
+        <Text className="text-light-300 text-sm text-center py-6">
+          Type to search
+        </Text>
+      )}
+    </View>
+  );
+}
+
+// ── Main screen ───────────────────────────────────────────────────────────────
 export default function PollDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -212,6 +430,8 @@ export default function PollDetailScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const [creatorUsername, setCreatorUsername] = useState<string | null>(null);
+  const [currentUsername, setCurrentUsername] = useState<string | null>(null);
+  const [showSuggestPanel, setShowSuggestPanel] = useState(false);
   const isNewPoll = useRef(false);
 
   const loadPoll = useCallback(async () => {
@@ -231,7 +451,6 @@ export default function PollDetailScreen() {
   // Show creation toast if navigated from create screen
   useEffect(() => {
     if (currentPoll && !isNewPoll.current) {
-      // Check if this poll was just created (within last 5 seconds)
       const age = Date.now() - new Date(currentPoll.created_at).getTime();
       if (age < 8000 && currentPoll.creator_id === user?.id) {
         isNewPoll.current = true;
@@ -252,6 +471,19 @@ export default function PollDetailScreen() {
         if (data) setCreatorUsername((data as { username: string }).username);
       });
   }, [currentPoll?.creator_id]);
+
+  // Fetch current user's username for suggestions
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from('profiles')
+      .select('username')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data) setCurrentUsername((data as { username: string }).username);
+      });
+  }, [user?.id]);
 
   // Realtime subscription
   useEffect(() => {
@@ -353,9 +585,7 @@ export default function PollDetailScreen() {
   if (!currentPoll) {
     return (
       <View className="flex-1 bg-primary items-center justify-center px-8">
-        <Text className="text-white font-semibold text-lg mb-2">
-          Poll not found
-        </Text>
+        <Text className="text-white font-semibold text-lg mb-2">Poll not found</Text>
         <Text className="text-light-300 text-sm text-center">
           This poll may have expired or the link is invalid.
         </Text>
@@ -376,11 +606,18 @@ export default function PollDetailScreen() {
     new Date(currentPoll.expires_at).getTime() > Date.now();
   const timeLabel = getTimeRemaining(currentPoll.expires_at, currentPoll.is_active);
 
-  // Find leading option
-  const maxVotes = Math.max(
-    0,
-    ...Object.values(currentPoll.votes_by_option),
+  const maxVotes = Math.max(0, ...Object.values(currentPoll.votes_by_option));
+
+  // Already suggested by current user?
+  const alreadySuggested = currentPoll.options.some(
+    (o) => o.suggested_by && o.suggested_by === user?.id,
   );
+  const atOptionLimit = currentPoll.options.length >= 10;
+  const canSuggest =
+    isActive &&
+    !!currentPoll.allow_suggestions &&
+    !atOptionLimit &&
+    (user !== null); // must be logged in to suggest
 
   return (
     <View className="flex-1 bg-primary">
@@ -391,8 +628,12 @@ export default function PollDetailScreen() {
       >
         {/* Header */}
         <View className="flex-row items-center px-4 pt-14 pb-2">
-          <TouchableOpacity onPress={() => router.back()} hitSlop={8} className="mr-3">
-            <ArrowLeft size={22} color="#A8B5DB" strokeWidth={2} />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+            className="w-9 h-9 rounded-full bg-dark-100 items-center justify-center mr-3"
+          >
+            <ArrowLeft size={18} color="#A8B5DB" strokeWidth={2} />
           </TouchableOpacity>
           <View className="flex-1" />
           <TouchableOpacity onPress={handleShare} hitSlop={8}>
@@ -408,9 +649,7 @@ export default function PollDetailScreen() {
 
           {/* Description */}
           {currentPoll.description ? (
-            <Text className="text-light-200 text-sm mb-3">
-              {currentPoll.description}
-            </Text>
+            <Text className="text-light-200 text-sm mb-3">{currentPoll.description}</Text>
           ) : null}
 
           {/* Meta row */}
@@ -424,15 +663,11 @@ export default function PollDetailScreen() {
 
           {/* Time banner */}
           <View
-            className={`flex-row items-center gap-x-2 rounded-xl px-4 py-2.5 mb-5 ${
+            className={`flex-row items-center gap-x-2 rounded-xl px-4 py-2.5 mb-3 ${
               isActive ? 'bg-accent/10' : 'bg-dark-100'
             }`}
           >
-            <Clock
-              size={14}
-              color={isActive ? '#AB8BFF' : '#6B7280'}
-              strokeWidth={2}
-            />
+            <Clock size={14} color={isActive ? '#AB8BFF' : '#6B7280'} strokeWidth={2} />
             <Text
               className={`text-sm font-medium ${
                 isActive ? 'text-accent' : 'text-light-300'
@@ -452,34 +687,91 @@ export default function PollDetailScreen() {
             )}
           </View>
 
-          {/* Options */}
-          {currentPoll.options.map((option) => {
-            const voteCount = currentPoll.votes_by_option[option.index] ?? 0;
-            const isLeading = hasVoted && voteCount === maxVotes && maxVotes > 0;
-            const isUserVote = currentPoll.user_vote === option.index;
-            const isSelected = selectedOption === option.index;
+          {/* ─── When to Watch banner ─── */}
+          {(currentPoll.watch_date || currentPoll.watch_time) && (
+            <View className="flex-row items-center gap-x-2 bg-dark-100 rounded-xl px-4 py-2.5 mb-3">
+              <Tv size={14} color="#AB8BFF" strokeWidth={2} />
+              <Text className="text-white text-sm font-medium">
+                {currentPoll.watch_date ? formatWatchDate(currentPoll.watch_date) : ''}
+                {currentPoll.watch_date && currentPoll.watch_time ? '  ·  ' : ''}
+                {currentPoll.watch_time
+                  ? WATCH_TIME_LABELS[currentPoll.watch_time]
+                  : ''}
+              </Text>
+            </View>
+          )}
 
-            return (
-              <OptionCard
-                key={option.index}
-                option={option}
-                hasVoted={hasVoted}
-                isSelected={isSelected}
-                isUserVote={isUserVote}
-                isLeading={isLeading}
-                voteCount={voteCount}
-                totalVotes={currentPoll.total_votes}
-                disabled={!isActive}
-                onSelect={() => {
-                  if (hasVoted && isActive) {
-                    handleChangeVote(option.index);
-                  } else {
-                    setSelectedOption(option.index);
+          {/* ─── Where to Watch chips ─── */}
+          {currentPoll.streaming_platforms && currentPoll.streaming_platforms.length > 0 && (
+            <View className="mb-3">
+              <View className="flex-row items-center gap-x-1.5 mb-2">
+                <MapPin size={13} color="#A8B5DB" strokeWidth={2} />
+                <Text className="text-light-300 text-xs font-medium">Available on</Text>
+              </View>
+              <View className="flex-row flex-wrap gap-2">
+                {currentPoll.streaming_platforms.map((p) => {
+                  const hasLink = !!p.url;
+                  if (hasLink) {
+                    return (
+                      <TouchableOpacity
+                        key={p.name}
+                        onPress={() => Linking.openURL(p.url!)}
+                        activeOpacity={0.75}
+                        className="flex-row items-center gap-x-1.5 bg-accent/10 border border-accent/30 px-3 py-1.5 rounded-full"
+                      >
+                        <Text className="text-accent text-xs font-semibold">{p.name}</Text>
+                        <ExternalLink size={11} color="#AB8BFF" strokeWidth={2} />
+                      </TouchableOpacity>
+                    );
                   }
-                }}
-              />
-            );
-          })}
+                  return (
+                    <View key={p.name} className="bg-dark-100 px-3 py-1.5 rounded-full">
+                      <Text className="text-white text-xs font-semibold">{p.name}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+              {currentPoll.streaming_platforms.some((p) => p.url) && (
+                <View className="flex-row items-center gap-x-1 mt-2">
+                  <Link2 size={11} color="#6B7280" strokeWidth={1.5} />
+                  <Text className="text-light-300/60 text-[10px]">
+                    Tap highlighted platforms to open watch link
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Options */}
+          <View className="mt-1">
+            {currentPoll.options.map((option) => {
+              const voteCount = currentPoll.votes_by_option[option.index] ?? 0;
+              const isLeading = hasVoted && voteCount === maxVotes && maxVotes > 0;
+              const isUserVote = currentPoll.user_vote === option.index;
+              const isSelected = selectedOption === option.index;
+
+              return (
+                <OptionCard
+                  key={option.index}
+                  option={option}
+                  hasVoted={hasVoted}
+                  isSelected={isSelected}
+                  isUserVote={isUserVote}
+                  isLeading={isLeading}
+                  voteCount={voteCount}
+                  totalVotes={currentPoll.total_votes}
+                  disabled={!isActive}
+                  onSelect={() => {
+                    if (hasVoted && isActive) {
+                      handleChangeVote(option.index);
+                    } else {
+                      setSelectedOption(option.index);
+                    }
+                  }}
+                />
+              );
+            })}
+          </View>
 
           {/* Change vote hint */}
           {hasVoted && isActive && (
@@ -495,13 +787,57 @@ export default function PollDetailScreen() {
             </Text>
           )}
 
+          {/* ─── Suggest a Show section ─── */}
+          {canSuggest && (
+            <View className="mt-2 mb-4">
+              {showSuggestPanel ? (
+                <SuggestPanel
+                  pollId={currentPoll.id}
+                  existingOptions={currentPoll.options}
+                  currentUserId={user?.id ?? null}
+                  currentUsername={currentUsername}
+                  onDone={() => setShowSuggestPanel(false)}
+                />
+              ) : (
+                <TouchableOpacity
+                  onPress={() => setShowSuggestPanel(true)}
+                  activeOpacity={0.8}
+                  className={`flex-row items-center justify-center gap-x-2 rounded-xl py-3 border ${
+                    alreadySuggested
+                      ? 'bg-dark-100 border-dark-200 opacity-60'
+                      : 'bg-accent/10 border-accent/30'
+                  }`}
+                  disabled={alreadySuggested}
+                >
+                  <Plus
+                    size={16}
+                    color={alreadySuggested ? '#A8B5DB' : '#AB8BFF'}
+                    strokeWidth={2}
+                  />
+                  <Text
+                    className={`text-sm font-semibold ${
+                      alreadySuggested ? 'text-light-300' : 'text-accent'
+                    }`}
+                  >
+                    {alreadySuggested
+                      ? 'You already suggested a show'
+                      : `Suggest a Show  ·  ${10 - currentPoll.options.length} slot${
+                          10 - currentPoll.options.length !== 1 ? 's' : ''
+                        } left`}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
           {/* Share section */}
           <View className="bg-dark-100 rounded-2xl p-4 mt-2 mb-4">
-            <Text className="text-white font-semibold text-sm mb-1">
-              Share this poll
-            </Text>
+            <Text className="text-white font-semibold text-sm mb-1">Share this poll</Text>
             <Text className="text-light-300 text-xs mb-3">
-              Code: <Text className="text-white font-mono font-semibold">{currentPoll.share_code}</Text>
+              Code:{' '}
+              <Text className="text-white font-mono font-semibold">
+                {currentPoll.share_code}
+              </Text>
             </Text>
             <View className="flex-row gap-x-2">
               <TouchableOpacity
@@ -509,8 +845,16 @@ export default function PollDetailScreen() {
                 activeOpacity={0.8}
                 className="flex-1 flex-row items-center justify-center gap-x-2 bg-dark-200 border border-dark-200 rounded-xl py-3"
               >
-                <Copy size={15} color={codeCopied ? '#AB8BFF' : '#A8B5DB'} strokeWidth={2} />
-                <Text className={`font-semibold text-sm ${codeCopied ? 'text-accent' : 'text-light-200'}`}>
+                <Copy
+                  size={15}
+                  color={codeCopied ? '#AB8BFF' : '#A8B5DB'}
+                  strokeWidth={2}
+                />
+                <Text
+                  className={`font-semibold text-sm ${
+                    codeCopied ? 'text-accent' : 'text-light-200'
+                  }`}
+                >
                   {codeCopied ? 'Copied!' : 'Copy Code'}
                 </Text>
               </TouchableOpacity>
@@ -520,9 +864,7 @@ export default function PollDetailScreen() {
                 className="flex-1 flex-row items-center justify-center gap-x-2 bg-accent/10 border border-accent/30 rounded-xl py-3"
               >
                 <Share2 size={15} color="#AB8BFF" strokeWidth={2} />
-                <Text className="text-accent font-semibold text-sm">
-                  Share
-                </Text>
+                <Text className="text-accent font-semibold text-sm">Share</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -537,9 +879,7 @@ export default function PollDetailScreen() {
                   className="flex-row items-center justify-center gap-x-2 bg-red-500/10 border border-red-500/30 rounded-xl py-3"
                 >
                   <SquareX size={16} color="#EF4444" strokeWidth={2} />
-                  <Text className="text-red-400 font-semibold text-sm">
-                    End Poll Early
-                  </Text>
+                  <Text className="text-red-400 font-semibold text-sm">End Poll Early</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -548,9 +888,7 @@ export default function PollDetailScreen() {
                 className="flex-row items-center justify-center gap-x-2 bg-dark-100 border border-dark-200 rounded-xl py-3"
               >
                 <RefreshCw size={16} color="#A8B5DB" strokeWidth={2} />
-                <Text className="text-light-200 font-semibold text-sm">
-                  Re-run Poll (24h)
-                </Text>
+                <Text className="text-light-200 font-semibold text-sm">Re-run Poll (24h)</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -565,16 +903,18 @@ export default function PollDetailScreen() {
             disabled={selectedOption === null || submitting}
             activeOpacity={0.8}
             className={`py-4 rounded-xl items-center flex-row justify-center gap-x-2 ${
-              selectedOption !== null && !submitting
-                ? 'bg-accent'
-                : 'bg-dark-100'
+              selectedOption !== null && !submitting ? 'bg-accent' : 'bg-dark-100'
             }`}
           >
             {submitting ? (
               <ActivityIndicator color="#030014" size="small" />
             ) : (
               <>
-                <Copy size={18} color={selectedOption !== null ? '#030014' : '#A8B5DB'} strokeWidth={2} />
+                <Copy
+                  size={18}
+                  color={selectedOption !== null ? '#030014' : '#A8B5DB'}
+                  strokeWidth={2}
+                />
                 <Text
                   className={`font-semibold text-base ${
                     selectedOption !== null ? 'text-primary' : 'text-light-300'

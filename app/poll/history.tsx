@@ -59,8 +59,12 @@ export default function PollHistoryScreen() {
     <View className="flex-1 bg-primary">
       {/* Header */}
       <View className="flex-row items-center px-4 pt-14 pb-4">
-        <TouchableOpacity onPress={() => router.back()} hitSlop={8} className="mr-3">
-          <ArrowLeft size={22} color="#A8B5DB" strokeWidth={2} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+          className="w-9 h-9 rounded-full bg-dark-100 items-center justify-center mr-3"
+        >
+          <ArrowLeft size={18} color="#A8B5DB" strokeWidth={2} />
         </TouchableOpacity>
         <Text className="text-white font-bold text-xl">Poll History</Text>
       </View>

@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { supabase } from '@/services/supabase';
 import { useAuthStore } from './useAuthStore';
-import type { Poll, PollListItem, PollOption, PollVote, PollWithResults } from '@/types';
+import type { Poll, PollListItem, PollOption, PollVote, PollWithResults, StreamingPlatform, WatchTime } from '@/types';
 
 const GUEST_ID_KEY = 'votch_guest_id';
 
@@ -104,7 +104,12 @@ interface PollState {
     description?: string;
     options: PollOption[];
     expiry_duration: '12h' | '24h' | '48h' | '1w';
+    watch_date?: string | null;
+    watch_time?: WatchTime | null;
+    streaming_platforms?: StreamingPlatform[] | null;
+    allow_suggestions?: boolean;
   }) => Promise<Poll>;
+  suggestOption: (pollId: string, option: Omit<PollOption, 'index'>) => Promise<void>;
   vote: (
     pollId: string,
     optionIndex: number,
@@ -272,6 +277,10 @@ export const usePollStore = create<PollState>((set, get) => ({
           expires_at: expiresAt,
           is_active: true,
           share_code: shareCode,
+          watch_date: data.watch_date ?? null,
+          watch_time: data.watch_time ?? null,
+          streaming_platforms: data.streaming_platforms ?? null,
+          allow_suggestions: data.allow_suggestions ?? false,
         })
         .select()
         .single();
@@ -398,6 +407,26 @@ export const usePollStore = create<PollState>((set, get) => ({
     }
   },
 
+  suggestOption: async (pollId, option) => {
+    const poll = get().currentPoll;
+    if (!poll) return;
+
+    const newOption: PollOption = { ...option, index: poll.options.length };
+    const newOptions = [...poll.options, newOption];
+
+    const { error } = await supabase
+      .from('polls')
+      .update({ options: newOptions })
+      .eq('id', pollId);
+
+    if (error) throw error;
+
+    set((state) => {
+      if (!state.currentPoll) return state;
+      return { currentPoll: { ...state.currentPoll, options: newOptions } };
+    });
+  },
+
   subscribeToVotes: (pollId) => {
     if (activeChannel) {
       supabase.removeChannel(activeChannel);
@@ -405,7 +434,7 @@ export const usePollStore = create<PollState>((set, get) => ({
     }
 
     activeChannel = supabase
-      .channel(`poll_votes:${pollId}`)
+      .channel(`poll:${pollId}`)
       .on(
         'postgres_changes',
         {
@@ -426,6 +455,27 @@ export const usePollStore = create<PollState>((set, get) => ({
                 ...state.currentPoll,
                 votes_by_option: newVotesByOption,
                 total_votes: state.currentPoll.total_votes + 1,
+              },
+            };
+          });
+        },
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'polls',
+          filter: `id=eq.${pollId}`,
+        },
+        (payload) => {
+          const updated = payload.new as Poll;
+          set((state) => {
+            if (!state.currentPoll) return state;
+            return {
+              currentPoll: {
+                ...state.currentPoll,
+                options: updated.options ?? state.currentPoll.options,
               },
             };
           });
