@@ -57,7 +57,7 @@ function EmptyVoted() {
 export default function PollsScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { myPolls, votedPolls, isLoading, fetchMyPolls, fetchVotedPolls } =
+  const { myPolls, votedPolls, isLoading, fetchMyPolls, fetchVotedPolls, subscribeToMyPolls, unsubscribeFromMyPolls } =
     usePollStore();
   const [activeTab, setActiveTab] = useState<SubTab>('mine');
   const [refreshing, setRefreshing] = useState(false);
@@ -70,6 +70,16 @@ export default function PollsScreen() {
   useEffect(() => {
     loadPolls();
   }, [loadPolls]);
+
+  // Realtime subscription to my polls
+  useEffect(() => {
+    if (!user) return;
+    const unsubscribe = subscribeToMyPolls(user.id);
+    return () => {
+      unsubscribe();
+      unsubscribeFromMyPolls();
+    };
+  }, [user, subscribeToMyPolls, unsubscribeFromMyPolls]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -107,14 +117,12 @@ export default function PollsScreen() {
         <TouchableOpacity
           onPress={() => setActiveTab('mine')}
           activeOpacity={0.8}
-          className={`flex-1 py-2 rounded-lg items-center ${
-            activeTab === 'mine' ? 'bg-accent' : ''
-          }`}
+          className={`flex-1 py-2 rounded-lg items-center ${activeTab === 'mine' ? 'bg-accent' : ''
+            }`}
         >
           <Text
-            className={`font-semibold text-sm ${
-              activeTab === 'mine' ? 'text-primary' : 'text-light-300'
-            }`}
+            className={`font-semibold text-sm ${activeTab === 'mine' ? 'text-primary' : 'text-light-300'
+              }`}
           >
             My Polls
           </Text>
@@ -122,14 +130,12 @@ export default function PollsScreen() {
         <TouchableOpacity
           onPress={() => setActiveTab('voted')}
           activeOpacity={0.8}
-          className={`flex-1 py-2 rounded-lg items-center ${
-            activeTab === 'voted' ? 'bg-accent' : ''
-          }`}
+          className={`flex-1 py-2 rounded-lg items-center ${activeTab === 'voted' ? 'bg-accent' : ''
+            }`}
         >
           <Text
-            className={`font-semibold text-sm ${
-              activeTab === 'voted' ? 'text-primary' : 'text-light-300'
-            }`}
+            className={`font-semibold text-sm ${activeTab === 'voted' ? 'text-primary' : 'text-light-300'
+              }`}
           >
             Voted
           </Text>

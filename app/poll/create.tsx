@@ -1,21 +1,23 @@
 import { getImageUrl, searchDramas, searchMovies } from '@/services/tmdb';
 import { usePollStore } from '@/store/usePollStore';
-import type { MediaType, PollOption, StreamingPlatform, TMDBDrama, WatchTime } from '@/types';
+import type { MediaType, PollOption, TMDBDrama, WatchTime } from '@/types';
 import { useQuery } from '@tanstack/react-query';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft,
+  Calendar,
   Check,
   ChevronDown,
   ChevronUp,
+  Clock,
   Film,
   Link2,
   Loader,
-  MapPin,
   Plus,
   Tv,
-  X,
+  X
 } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -46,21 +48,6 @@ const TIME_OPTIONS: { label: string; sub: string; value: WatchTime }[] = [
   { label: 'Evening', sub: '7 PM', value: 'evening' },
   { label: 'Night', sub: '9 PM', value: 'night' },
   { label: 'Anytime', sub: '', value: 'anytime' },
-];
-
-const STREAMING_PLATFORMS = [
-  'Netflix',
-  'Disney+',
-  'Crunchyroll',
-  'Prime Video',
-  'Hulu',
-  'HBO Max',
-  'Apple TV+',
-  'Viki',
-  'iQIYI',
-  'WeTV',
-  'Tubi',
-  'Peacock',
 ];
 
 function getDateChips(): { label: string; value: string }[] {
@@ -106,12 +93,17 @@ export default function CreatePollScreen() {
   const [description, setDescription] = useState('');
   const [expiry, setExpiry] = useState<ExpiryDuration>('24h');
 
-  // Step 1 — when / where (collapsed by default)
+  // Step 1 — when / where (when to watch and where collapsed by default)
   const [whenExpanded, setWhenExpanded] = useState(false);
   const [whereExpanded, setWhereExpanded] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<WatchTime | null>(null);
-  const [selectedPlatforms, setSelectedPlatforms] = useState<StreamingPlatform[]>([]);
+  const [useCustomDateTime, setUseCustomDateTime] = useState(false);
+  const [customDate, setCustomDate] = useState<Date>(new Date());
+  const [customTime, setCustomTime] = useState<Date>(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [watchTogetherLink, setWatchTogetherLink] = useState('');
   const [allowSuggestions, setAllowSuggestions] = useState(false);
 
   // Step 2 — options
@@ -189,17 +181,11 @@ export default function CreatePollScreen() {
   };
 
   const togglePlatform = (name: string) => {
-    setSelectedPlatforms((prev) =>
-      prev.some((p) => p.name === name)
-        ? prev.filter((p) => p.name !== name)
-        : [...prev, { name, url: null }],
-    );
+    // Removed - using watchTogetherLink instead
   };
 
   const updatePlatformUrl = (name: string, url: string) => {
-    setSelectedPlatforms((prev) =>
-      prev.map((p) => (p.name === name ? { ...p, url: url.trim() || null } : p)),
-    );
+    // Removed - using watchTogetherLink instead
   };
 
   const canProceed = title.trim().length > 0;
@@ -209,14 +195,35 @@ export default function CreatePollScreen() {
     if (!canCreate || isCreating) return;
     setIsCreating(true);
     try {
+      // Parse custom date from Date object to ISO format YYYY-MM-DD
+      let finalWatchDate = selectedDate;
+      let finalWatchTime = selectedTime;
+      let finalWatchCustomTime: string | undefined;
+
+      if (useCustomDateTime) {
+        // Convert Date to YYYY-MM-DD
+        const year = customDate.getFullYear();
+        const month = String(customDate.getMonth() + 1).padStart(2, '0');
+        const day = String(customDate.getDate()).padStart(2, '0');
+        finalWatchDate = `${year}-${month}-${day}`;
+        
+        // Convert time to HH:MM format
+        const hours = String(customTime.getHours()).padStart(2, '0');
+        const minutes = String(customTime.getMinutes()).padStart(2, '0');
+        finalWatchCustomTime = `${hours}:${minutes}`;
+        
+        finalWatchTime = null;
+      }
+
       const poll = await createPoll({
         title: title.trim(),
         description: description.trim() || undefined,
         options: selectedOptions,
         expiry_duration: expiry,
-        watch_date: selectedDate,
-        watch_time: selectedTime,
-        streaming_platforms: selectedPlatforms.length > 0 ? selectedPlatforms : null,
+        watch_date: finalWatchDate,
+        watch_time: finalWatchTime,
+        watch_custom_time: finalWatchCustomTime,
+        watch_together_link: watchTogetherLink.trim() || undefined,
         allow_suggestions: allowSuggestions,
       });
       router.replace(`/poll/${poll.id}` as never);
@@ -317,16 +324,14 @@ export default function CreatePollScreen() {
                 key={opt.value}
                 onPress={() => setExpiry(opt.value)}
                 activeOpacity={0.8}
-                className={`flex-1 py-2.5 rounded-xl items-center ${
-                  expiry === opt.value
-                    ? 'bg-accent'
-                    : 'bg-dark-100 border border-dark-200'
-                }`}
+                className={`flex-1 py-2.5 rounded-xl items-center ${expiry === opt.value
+                  ? 'bg-accent'
+                  : 'bg-dark-100 border border-dark-200'
+                  }`}
               >
                 <Text
-                  className={`text-sm font-semibold ${
-                    expiry === opt.value ? 'text-primary' : 'text-light-200'
-                  }`}
+                  className={`text-sm font-semibold ${expiry === opt.value ? 'text-primary' : 'text-light-200'
+                    }`}
                 >
                   {opt.label}
                 </Text>
@@ -341,15 +346,14 @@ export default function CreatePollScreen() {
             className="flex-row items-center justify-between bg-dark-100 rounded-xl px-4 py-3.5 mb-2"
           >
             <View className="flex-row items-center gap-x-2">
-              <Tv size={16} color={selectedDate || selectedTime ? '#AB8BFF' : '#A8B5DB'} strokeWidth={2} />
+              <Tv size={16} color={selectedDate || selectedTime || useCustomDateTime ? '#AB8BFF' : '#A8B5DB'} strokeWidth={2} />
               <Text
-                className={`text-sm font-semibold ${
-                  selectedDate || selectedTime ? 'text-accent' : 'text-light-200'
-                }`}
+                className={`text-sm font-semibold ${selectedDate || selectedTime || useCustomDateTime ? 'text-accent' : 'text-light-200'
+                  }`}
               >
-                When to Watch
+                When to Watch <Text className="text-light-300 text-xs font-normal">(optional)</Text>
               </Text>
-              {(selectedDate || selectedTime) && (
+              {(selectedDate || selectedTime || useCustomDateTime) && (
                 <View className="bg-accent/20 px-2 py-0.5 rounded-full">
                   <Text className="text-accent text-[10px] font-semibold">Set</Text>
                 </View>
@@ -377,16 +381,14 @@ export default function CreatePollScreen() {
                       setSelectedDate((v) => (v === chip.value ? null : chip.value))
                     }
                     activeOpacity={0.8}
-                    className={`px-3 py-2 rounded-xl items-center ${
-                      selectedDate === chip.value
-                        ? 'bg-accent'
-                        : 'bg-dark-200'
-                    }`}
+                    className={`px-3 py-2 rounded-xl items-center ${selectedDate === chip.value
+                      ? 'bg-accent'
+                      : 'bg-dark-200'
+                      }`}
                   >
                     <Text
-                      className={`text-xs font-semibold ${
-                        selectedDate === chip.value ? 'text-primary' : 'text-light-200'
-                      }`}
+                      className={`text-xs font-semibold ${selectedDate === chip.value ? 'text-primary' : 'text-light-200'
+                        }`}
                     >
                       {chip.label}
                     </Text>
@@ -399,32 +401,135 @@ export default function CreatePollScreen() {
                 {TIME_OPTIONS.map((opt) => (
                   <TouchableOpacity
                     key={opt.value}
-                    onPress={() =>
-                      setSelectedTime((v) => (v === opt.value ? null : opt.value))
-                    }
+                    onPress={() => {
+                      setSelectedTime((v) => (v === opt.value ? null : opt.value));
+                      setUseCustomDateTime(false);
+                    }}
                     activeOpacity={0.8}
-                    className={`px-3 py-2 rounded-xl items-center ${
-                      selectedTime === opt.value ? 'bg-accent' : 'bg-dark-200'
-                    }`}
+                    className={`px-3 py-2 rounded-xl items-center ${selectedTime === opt.value && !useCustomDateTime ? 'bg-accent' : 'bg-dark-200'
+                      }`}
                   >
                     <Text
-                      className={`text-xs font-semibold ${
-                        selectedTime === opt.value ? 'text-primary' : 'text-light-200'
-                      }`}
+                      className={`text-xs font-semibold ${selectedTime === opt.value && !useCustomDateTime ? 'text-primary' : 'text-light-200'
+                        }`}
                     >
                       {opt.label}
                     </Text>
                     {opt.sub ? (
                       <Text
-                        className={`text-[10px] mt-0.5 ${
-                          selectedTime === opt.value ? 'text-primary/80' : 'text-light-300'
-                        }`}
+                        className={`text-[10px] mt-0.5 ${selectedTime === opt.value && !useCustomDateTime ? 'text-primary/80' : 'text-light-300'
+                          }`}
                       >
                         {opt.sub}
                       </Text>
                     ) : null}
                   </TouchableOpacity>
                 ))}
+              </View>
+
+              {/* ─── Custom date/time section ─── */}
+              <View className="mt-4 pt-4 border-t border-dark-200">
+                <TouchableOpacity
+                  onPress={() => setUseCustomDateTime((v) => !v)}
+                  activeOpacity={0.8}
+                  className={`flex-row items-center px-3 py-2 rounded-xl border ${useCustomDateTime ? 'bg-accent/10 border-accent/30' : 'bg-dark-200 border-dark-200'}
+                    }`}
+                >
+                  <Clock size={14} color={useCustomDateTime ? '#AB8BFF' : '#A8B5DB'} strokeWidth={2} />
+                  <Text className={`text-xs font-semibold ml-2 ${useCustomDateTime ? 'text-accent' : 'text-light-200'}`}>
+                    Custom date & time
+                  </Text>
+                </TouchableOpacity>
+
+                {useCustomDateTime && (
+                  <View className="mt-3 gap-y-2">
+                    {/* Date Picker */}
+                    <TouchableOpacity
+                      onPress={() => setShowDatePicker(true)}
+                      activeOpacity={0.8}
+                      className="flex-row items-center bg-dark-200 rounded-lg px-3 py-2.5"
+                    >
+                      <Calendar size={12} color="#9CA4AB" strokeWidth={1.5} />
+                      <Text className="flex-1 text-white text-sm ml-2 font-medium">
+                        {customDate.toLocaleDateString('en-US', {
+                          month: '2-digit',
+                          day: '2-digit',
+                          year: 'numeric',
+                        })}
+                      </Text>
+                      <ChevronDown size={14} color="#A8B5DB" strokeWidth={2} />
+                    </TouchableOpacity>
+
+                    {showDatePicker && (
+                      <DateTimePicker
+                        value={customDate}
+                        mode="date"
+                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                        onChange={(event, selectedDate) => {
+                          if (Platform.OS === 'android') {
+                            setShowDatePicker(false);
+                          }
+                          if (selectedDate) {
+                            setCustomDate(selectedDate);
+                          }
+                        }}
+                        minimumDate={new Date()}
+                        textColor="#FFFFFF"
+                      />
+                    )}
+
+                    {Platform.OS === 'ios' && showDatePicker && (
+                      <View className="flex-row gap-x-2 justify-end px-2 py-2">
+                        <TouchableOpacity onPress={() => setShowDatePicker(false)} className="px-4 py-2">
+                          <Text className="text-accent font-semibold">Done</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
+                    {/* Time Picker */}
+                    <TouchableOpacity
+                      onPress={() => setShowTimePicker(true)}
+                      activeOpacity={0.8}
+                      className="flex-row items-center bg-dark-200 rounded-lg px-3 py-2.5"
+                    >
+                      <Clock size={12} color="#9CA4AB" strokeWidth={1.5} />
+                      <Text className="flex-1 text-white text-sm ml-2 font-medium">
+                        {customTime.toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: false,
+                        })}
+                      </Text>
+                      <ChevronDown size={14} color="#A8B5DB" strokeWidth={2} />
+                    </TouchableOpacity>
+
+                    {showTimePicker && (
+                      <DateTimePicker
+                        value={customTime}
+                        mode="time"
+                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                        onChange={(event, selectedTime) => {
+                          if (Platform.OS === 'android') {
+                            setShowTimePicker(false);
+                          }
+                          if (selectedTime) {
+                            setCustomTime(selectedTime);
+                          }
+                        }}
+                        is24Hour={true}
+                        textColor="#FFFFFF"
+                      />
+                    )}
+
+                    {Platform.OS === 'ios' && showTimePicker && (
+                      <View className="flex-row gap-x-2 justify-end px-2 py-2">
+                        <TouchableOpacity onPress={() => setShowTimePicker(false)} className="px-4 py-2">
+                          <Text className="text-accent font-semibold">Done</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                )}
               </View>
             </View>
           )}
@@ -436,19 +541,16 @@ export default function CreatePollScreen() {
             className="flex-row items-center justify-between bg-dark-100 rounded-xl px-4 py-3.5 mb-2"
           >
             <View className="flex-row items-center gap-x-2">
-              <MapPin size={16} color={selectedPlatforms.length > 0 ? '#AB8BFF' : '#A8B5DB'} strokeWidth={2} />
+              <Link2 size={16} color={watchTogetherLink ? '#AB8BFF' : '#A8B5DB'} strokeWidth={2} />
               <Text
-                className={`text-sm font-semibold ${
-                  selectedPlatforms.length > 0 ? 'text-accent' : 'text-light-200'
-                }`}
+                className={`text-sm font-semibold ${watchTogetherLink ? 'text-accent' : 'text-light-200'
+                  }`}
               >
-                Where to Watch
+                Watch Together Link <Text className="text-light-300 text-xs font-normal">(optional)</Text>
               </Text>
-              {selectedPlatforms.length > 0 && (
+              {watchTogetherLink && (
                 <View className="bg-accent/20 px-2 py-0.5 rounded-full">
-                  <Text className="text-accent text-[10px] font-semibold">
-                    {selectedPlatforms.length} · {selectedPlatforms.filter((p) => p.url).length} linked
-                  </Text>
+                  <Text className="text-accent text-[10px] font-semibold">Added</Text>
                 </View>
               )}
             </View>
@@ -461,82 +563,37 @@ export default function CreatePollScreen() {
 
           {whereExpanded && (
             <View className="bg-dark-100/60 rounded-xl px-4 pt-3 pb-4 mb-2">
-              <Text className="text-light-300 text-xs mb-3">
-                Select platforms where the show is available
-              </Text>
-              {/* Platform chips */}
-              <View className="flex-row flex-wrap gap-2 mb-3">
-                {STREAMING_PLATFORMS.map((platform) => {
-                  const selected = selectedPlatforms.some((p) => p.name === platform);
-                  return (
-                    <TouchableOpacity
-                      key={platform}
-                      onPress={() => togglePlatform(platform)}
-                      activeOpacity={0.8}
-                      className={`px-3 py-2 rounded-xl flex-row items-center gap-x-1.5 ${
-                        selected ? 'bg-accent' : 'bg-dark-200'
-                      }`}
-                    >
-                      {selected && (
-                        <Check size={11} color="#030014" strokeWidth={3} />
-                      )}
-                      <Text
-                        className={`text-xs font-semibold ${
-                          selected ? 'text-primary' : 'text-light-200'
-                        }`}
-                      >
-                        {platform}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+              <View className="flex-row items-center gap-x-1.5 mb-2">
+                <Link2 size={12} color="#A8B5DB" strokeWidth={2} />
+                <Text className="text-light-300 text-xs">
+                  Add a watch-together link (optional)
+                </Text>
               </View>
-
-              {/* URL inputs for selected platforms */}
-              {selectedPlatforms.length > 0 && (
-                <View className="gap-y-2 pt-2 border-t border-dark-200">
-                  <View className="flex-row items-center gap-x-1.5 mb-1">
-                    <Link2 size={12} color="#A8B5DB" strokeWidth={2} />
-                    <Text className="text-light-300 text-xs">
-                      Add a link for each platform (optional)
-                    </Text>
-                  </View>
-                  <Text className="text-light-300/70 text-[11px] mb-1">
-                    Paste a direct show URL, Teleparty, Kast, or any watch-party link
-                  </Text>
-                  {selectedPlatforms.map((platform) => (
-                    <View key={platform.name} className="flex-row items-center gap-x-2">
-                      <View className="bg-dark-200 px-2 py-1 rounded-lg" style={{ minWidth: 72 }}>
-                        <Text className="text-white text-[11px] font-semibold" numberOfLines={1}>
-                          {platform.name}
-                        </Text>
-                      </View>
-                      <View className="flex-1 flex-row items-center bg-dark-200 rounded-lg px-3">
-                        <Link2 size={12} color="#9CA4AB" strokeWidth={1.5} />
-                        <TextInput
-                          className="flex-1 text-white text-xs py-2.5 ml-2"
-                          placeholder="https://…"
-                          placeholderTextColor="#6B7280"
-                          value={platform.url ?? ''}
-                          onChangeText={(v) => updatePlatformUrl(platform.name, v)}
-                          autoCapitalize="none"
-                          autoCorrect={false}
-                          keyboardType="url"
-                          returnKeyType="done"
-                        />
-                        {platform.url ? (
-                          <TouchableOpacity
-                            onPress={() => updatePlatformUrl(platform.name, '')}
-                            hitSlop={8}
-                          >
-                            <X size={12} color="#A8B5DB" strokeWidth={2} />
-                          </TouchableOpacity>
-                        ) : null}
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              )}
+              <Text className="text-light-300/70 text-[11px] mb-3">
+                Paste a Teleparty link, Kast watch party, or any streaming link for your friends
+              </Text>
+              <View className="flex-row items-center bg-dark-200 rounded-lg px-3">
+                <Link2 size={12} color="#9CA4AB" strokeWidth={1.5} />
+                <TextInput
+                  className="flex-1 text-white text-sm py-3 ml-2"
+                  placeholder="https://teleparty.com/… or watch party link"
+                  placeholderTextColor="#6B7280"
+                  value={watchTogetherLink}
+                  onChangeText={setWatchTogetherLink}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                  returnKeyType="done"
+                />
+                {watchTogetherLink ? (
+                  <TouchableOpacity
+                    onPress={() => setWatchTogetherLink('')}
+                    hitSlop={8}
+                  >
+                    <X size={12} color="#A8B5DB" strokeWidth={2} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
             </View>
           )}
 
@@ -561,14 +618,12 @@ export default function CreatePollScreen() {
             onPress={() => setStep(2)}
             disabled={!canProceed}
             activeOpacity={0.8}
-            className={`py-4 rounded-xl items-center ${
-              canProceed ? 'bg-accent' : 'bg-dark-100'
-            }`}
+            className={`py-4 rounded-xl items-center ${canProceed ? 'bg-accent' : 'bg-dark-100'
+              }`}
           >
             <Text
-              className={`font-semibold text-base ${
-                canProceed ? 'text-primary' : 'text-light-300'
-              }`}
+              className={`font-semibold text-base ${canProceed ? 'text-primary' : 'text-light-300'
+                }`}
             >
               Next — Add Options
             </Text>
@@ -585,9 +640,8 @@ export default function CreatePollScreen() {
               <View className="flex-row items-center justify-between mb-2">
                 <Text className="text-light-300 text-xs">Selected options</Text>
                 <Text
-                  className={`text-xs font-semibold ${
-                    selectedOptions.length < 3 ? 'text-amber-400' : 'text-green-400'
-                  }`}
+                  className={`text-xs font-semibold ${selectedOptions.length < 3 ? 'text-amber-400' : 'text-green-400'
+                    }`}
                 >
                   {selectedOptions.length}/5
                   {selectedOptions.length < 3 ? ' (min 3)' : ''}
@@ -673,9 +727,8 @@ export default function CreatePollScreen() {
                   onPress={() => addOption(item)}
                   disabled={already || full}
                   activeOpacity={0.7}
-                  className={`flex-row items-center px-4 py-3 mb-1 mx-4 rounded-xl ${
-                    already ? 'bg-accent/10' : 'bg-dark-100'
-                  } ${full && !already ? 'opacity-40' : ''}`}
+                  className={`flex-row items-center px-4 py-3 mb-1 mx-4 rounded-xl ${already ? 'bg-accent/10' : 'bg-dark-100'
+                    } ${full && !already ? 'opacity-40' : ''}`}
                 >
                   {posterUrl ? (
                     <Image
@@ -746,9 +799,8 @@ export default function CreatePollScreen() {
               onPress={handleCreate}
               disabled={!canCreate || isCreating}
               activeOpacity={0.8}
-              className={`py-4 rounded-xl items-center flex-row justify-center gap-x-2 ${
-                canCreate && !isCreating ? 'bg-accent' : 'bg-dark-100'
-              }`}
+              className={`py-4 rounded-xl items-center flex-row justify-center gap-x-2 ${canCreate && !isCreating ? 'bg-accent' : 'bg-dark-100'
+                }`}
             >
               {isCreating ? (
                 <ActivityIndicator color="#030014" size="small" />
@@ -760,17 +812,15 @@ export default function CreatePollScreen() {
                     <Loader size={18} color="#A8B5DB" strokeWidth={2} />
                   )}
                   <Text
-                    className={`font-semibold text-base ${
-                      canCreate && !isCreating ? 'text-primary' : 'text-light-300'
-                    }`}
+                    className={`font-semibold text-base ${canCreate && !isCreating ? 'text-primary' : 'text-light-300'
+                      }`}
                   >
                     {isCreating
                       ? 'Creating…'
                       : canCreate
                         ? 'Create Poll'
-                        : `Need ${3 - selectedOptions.length} more option${
-                            3 - selectedOptions.length !== 1 ? 's' : ''
-                          }`}
+                        : `Need ${3 - selectedOptions.length} more option${3 - selectedOptions.length !== 1 ? 's' : ''
+                        }`}
                   </Text>
                 </>
               )}

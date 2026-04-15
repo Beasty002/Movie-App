@@ -1,8 +1,10 @@
 import Toast from '@/components/ui/Toast';
+import { supabase } from '@/services/supabase';
 import { getImageUrl, searchDramas, searchMovies } from '@/services/tmdb';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePollStore } from '@/store/usePollStore';
 import type { PollOption, TMDBDrama, WatchTime } from '@/types';
+import { useQuery } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -12,10 +14,10 @@ import {
   CheckCircle,
   Clock,
   Copy,
+  Edit2,
   ExternalLink,
   Film,
   Link2,
-  MapPin,
   Plus,
   RefreshCw,
   Share2,
@@ -29,17 +31,14 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
-  FlatList,
   Linking,
-  Share,
   ScrollView,
+  Share,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
-import { supabase } from '@/services/supabase';
-import { useQuery } from '@tanstack/react-query';
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -172,9 +171,8 @@ function OptionCard({
       onPress={onSelect}
       disabled={disabled}
       activeOpacity={0.75}
-      className={`bg-dark-100 rounded-2xl p-3 mb-3 flex-row items-start ${
-        isSelected && !hasVoted ? 'border-2 border-accent' : 'border-2 border-transparent'
-      } ${isUserVote && hasVoted ? 'border border-accent/40' : ''}`}
+      className={`bg-dark-100 rounded-2xl p-3 mb-3 flex-row items-start ${isSelected && !hasVoted ? 'border-2 border-accent' : 'border-2 border-transparent'
+        } ${isUserVote && hasVoted ? 'border border-accent/40' : ''}`}
     >
       {posterUrl ? (
         <Image
@@ -194,9 +192,8 @@ function OptionCard({
       <View className="flex-1 ml-3">
         <View className="flex-row items-center justify-between">
           <Text
-            className={`text-sm flex-1 pr-2 ${
-              isLeading && hasVoted ? 'text-white font-bold' : 'text-white font-medium'
-            }`}
+            className={`text-sm flex-1 pr-2 ${isLeading && hasVoted ? 'text-white font-bold' : 'text-white font-medium'
+              }`}
             numberOfLines={2}
           >
             {option.title}
@@ -359,9 +356,8 @@ function SuggestPanel({
               onPress={() => handleSuggest(item)}
               disabled={already || submitting}
               activeOpacity={0.7}
-              className={`flex-row items-center px-4 py-3 border-b border-dark-200/50 ${
-                already ? 'opacity-40' : ''
-              }`}
+              className={`flex-row items-center px-4 py-3 border-b border-dark-200/50 ${already ? 'opacity-40' : ''
+                }`}
             >
               {posterUrl ? (
                 <Image
@@ -663,15 +659,13 @@ export default function PollDetailScreen() {
 
           {/* Time banner */}
           <View
-            className={`flex-row items-center gap-x-2 rounded-xl px-4 py-2.5 mb-3 ${
-              isActive ? 'bg-accent/10' : 'bg-dark-100'
-            }`}
+            className={`flex-row items-center gap-x-2 rounded-xl px-4 py-2.5 mb-3 ${isActive ? 'bg-accent/10' : 'bg-dark-100'
+              }`}
           >
             <Clock size={14} color={isActive ? '#AB8BFF' : '#6B7280'} strokeWidth={2} />
             <Text
-              className={`text-sm font-medium ${
-                isActive ? 'text-accent' : 'text-light-300'
-              }`}
+              className={`text-sm font-medium ${isActive ? 'text-accent' : 'text-light-300'
+                }`}
             >
               {timeLabel}
             </Text>
@@ -688,58 +682,35 @@ export default function PollDetailScreen() {
           </View>
 
           {/* ─── When to Watch banner ─── */}
-          {(currentPoll.watch_date || currentPoll.watch_time) && (
+          {(currentPoll.watch_date || currentPoll.watch_time || currentPoll.watch_custom_time) && (
             <View className="flex-row items-center gap-x-2 bg-dark-100 rounded-xl px-4 py-2.5 mb-3">
               <Tv size={14} color="#AB8BFF" strokeWidth={2} />
               <Text className="text-white text-sm font-medium">
                 {currentPoll.watch_date ? formatWatchDate(currentPoll.watch_date) : ''}
-                {currentPoll.watch_date && currentPoll.watch_time ? '  ·  ' : ''}
-                {currentPoll.watch_time
-                  ? WATCH_TIME_LABELS[currentPoll.watch_time]
-                  : ''}
+                {currentPoll.watch_date && (currentPoll.watch_time || currentPoll.watch_custom_time) ? '  ·  ' : ''}
+                {currentPoll.watch_custom_time
+                  ? currentPoll.watch_custom_time
+                  : currentPoll.watch_time
+                    ? WATCH_TIME_LABELS[currentPoll.watch_time]
+                    : ''}
               </Text>
             </View>
           )}
 
-          {/* ─── Where to Watch chips ─── */}
-          {currentPoll.streaming_platforms && currentPoll.streaming_platforms.length > 0 && (
-            <View className="mb-3">
-              <View className="flex-row items-center gap-x-1.5 mb-2">
-                <MapPin size={13} color="#A8B5DB" strokeWidth={2} />
-                <Text className="text-light-300 text-xs font-medium">Available on</Text>
+          {/* ─── Where to Watch banner ─── */}
+          {currentPoll.watch_together_link && (
+            <TouchableOpacity
+              onPress={() => Linking.openURL(currentPoll.watch_together_link!)}
+              activeOpacity={0.75}
+              className="flex-row items-center gap-x-2 bg-accent/10 border border-accent/30 rounded-xl px-4 py-3 mb-3"
+            >
+              <Link2 size={14} color="#AB8BFF" strokeWidth={2} />
+              <View className="flex-1">
+                <Text className="text-light-300 text-xs">Watch Together</Text>
+                <Text className="text-accent text-sm font-semibold">Open watch party link</Text>
               </View>
-              <View className="flex-row flex-wrap gap-2">
-                {currentPoll.streaming_platforms.map((p) => {
-                  const hasLink = !!p.url;
-                  if (hasLink) {
-                    return (
-                      <TouchableOpacity
-                        key={p.name}
-                        onPress={() => Linking.openURL(p.url!)}
-                        activeOpacity={0.75}
-                        className="flex-row items-center gap-x-1.5 bg-accent/10 border border-accent/30 px-3 py-1.5 rounded-full"
-                      >
-                        <Text className="text-accent text-xs font-semibold">{p.name}</Text>
-                        <ExternalLink size={11} color="#AB8BFF" strokeWidth={2} />
-                      </TouchableOpacity>
-                    );
-                  }
-                  return (
-                    <View key={p.name} className="bg-dark-100 px-3 py-1.5 rounded-full">
-                      <Text className="text-white text-xs font-semibold">{p.name}</Text>
-                    </View>
-                  );
-                })}
-              </View>
-              {currentPoll.streaming_platforms.some((p) => p.url) && (
-                <View className="flex-row items-center gap-x-1 mt-2">
-                  <Link2 size={11} color="#6B7280" strokeWidth={1.5} />
-                  <Text className="text-light-300/60 text-[10px]">
-                    Tap highlighted platforms to open watch link
-                  </Text>
-                </View>
-              )}
-            </View>
+              <ExternalLink size={14} color="#AB8BFF" strokeWidth={2} />
+            </TouchableOpacity>
           )}
 
           {/* Options */}
@@ -802,11 +773,10 @@ export default function PollDetailScreen() {
                 <TouchableOpacity
                   onPress={() => setShowSuggestPanel(true)}
                   activeOpacity={0.8}
-                  className={`flex-row items-center justify-center gap-x-2 rounded-xl py-3 border ${
-                    alreadySuggested
-                      ? 'bg-dark-100 border-dark-200 opacity-60'
-                      : 'bg-accent/10 border-accent/30'
-                  }`}
+                  className={`flex-row items-center justify-center gap-x-2 rounded-xl py-3 border ${alreadySuggested
+                    ? 'bg-dark-100 border-dark-200 opacity-60'
+                    : 'bg-accent/10 border-accent/30'
+                    }`}
                   disabled={alreadySuggested}
                 >
                   <Plus
@@ -815,15 +785,13 @@ export default function PollDetailScreen() {
                     strokeWidth={2}
                   />
                   <Text
-                    className={`text-sm font-semibold ${
-                      alreadySuggested ? 'text-light-300' : 'text-accent'
-                    }`}
+                    className={`text-sm font-semibold ${alreadySuggested ? 'text-light-300' : 'text-accent'
+                      }`}
                   >
                     {alreadySuggested
                       ? 'You already suggested a show'
-                      : `Suggest a Show  ·  ${10 - currentPoll.options.length} slot${
-                          10 - currentPoll.options.length !== 1 ? 's' : ''
-                        } left`}
+                      : `Suggest a Show  ·  ${10 - currentPoll.options.length} slot${10 - currentPoll.options.length !== 1 ? 's' : ''
+                      } left`}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -851,9 +819,8 @@ export default function PollDetailScreen() {
                   strokeWidth={2}
                 />
                 <Text
-                  className={`font-semibold text-sm ${
-                    codeCopied ? 'text-accent' : 'text-light-200'
-                  }`}
+                  className={`font-semibold text-sm ${codeCopied ? 'text-accent' : 'text-light-200'
+                    }`}
                 >
                   {codeCopied ? 'Copied!' : 'Copy Code'}
                 </Text>
@@ -872,6 +839,16 @@ export default function PollDetailScreen() {
           {/* Creator controls */}
           {isCreator && (
             <View className="gap-y-2 mb-4">
+              {isActive && (
+                <TouchableOpacity
+                  onPress={() => router.push({ pathname: '/poll/edit', params: { id: currentPoll.id } } as never)}
+                  activeOpacity={0.8}
+                  className="flex-row items-center justify-center gap-x-2 bg-accent/10 border border-accent/30 rounded-xl py-3"
+                >
+                  <Edit2 size={16} color="#AB8BFF" strokeWidth={2} />
+                  <Text className="text-accent font-semibold text-sm">Edit Poll</Text>
+                </TouchableOpacity>
+              )}
               {isActive && (
                 <TouchableOpacity
                   onPress={handleEndPoll}
@@ -902,9 +879,8 @@ export default function PollDetailScreen() {
             onPress={handleVote}
             disabled={selectedOption === null || submitting}
             activeOpacity={0.8}
-            className={`py-4 rounded-xl items-center flex-row justify-center gap-x-2 ${
-              selectedOption !== null && !submitting ? 'bg-accent' : 'bg-dark-100'
-            }`}
+            className={`py-4 rounded-xl items-center flex-row justify-center gap-x-2 ${selectedOption !== null && !submitting ? 'bg-accent' : 'bg-dark-100'
+              }`}
           >
             {submitting ? (
               <ActivityIndicator color="#030014" size="small" />
@@ -916,9 +892,8 @@ export default function PollDetailScreen() {
                   strokeWidth={2}
                 />
                 <Text
-                  className={`font-semibold text-base ${
-                    selectedOption !== null ? 'text-primary' : 'text-light-300'
-                  }`}
+                  className={`font-semibold text-base ${selectedOption !== null ? 'text-primary' : 'text-light-300'
+                    }`}
                 >
                   {selectedOption !== null ? 'Submit Vote' : 'Select an option'}
                 </Text>

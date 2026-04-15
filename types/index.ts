@@ -193,11 +193,6 @@ export interface PollOption {
 
 export type WatchTime = 'morning' | 'afternoon' | 'evening' | 'night' | 'anytime';
 
-export interface StreamingPlatform {
-  name: string;
-  url?: string | null; // direct show link or watch-party link (Teleparty, Kast, etc.)
-}
-
 export interface Poll {
   id: string;
   creator_id: string | null;
@@ -213,7 +208,8 @@ export interface Poll {
   // optional scheduling & viewing context
   watch_date?: string | null;              // ISO date string e.g. "2025-01-15"
   watch_time?: WatchTime | null;
-  streaming_platforms?: StreamingPlatform[] | null;
+  watch_custom_time?: string | null;       // Custom time in HH:MM format (24h)
+  watch_together_link?: string | null;     // Teleparty, Kast, or watch party link
   allow_suggestions?: boolean;             // whether voters can add more options
 }
 

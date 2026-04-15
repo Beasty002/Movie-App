@@ -1,8 +1,8 @@
+import { supabase } from '@/services/supabase';
+import type { Poll, PollListItem, PollOption, PollVote, PollWithResults, WatchTime } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
-import { supabase } from '@/services/supabase';
 import { useAuthStore } from './useAuthStore';
-import type { Poll, PollListItem, PollOption, PollVote, PollWithResults, StreamingPlatform, WatchTime } from '@/types';
 
 const GUEST_ID_KEY = 'votch_guest_id';
 
@@ -61,8 +61,9 @@ function buildPollWithResults(
   return { ...poll, total_votes: votes.length, votes_by_option, user_vote };
 }
 
-// Module-level channel reference — not reactive state
+// Module-level channel references — not reactive state
 let activeChannel: ReturnType<typeof supabase.channel> | null = null;
+let myPollsChannel: ReturnType<typeof supabase.channel> | null = null;
 
 // Raw Supabase row shape when using select('*, poll_votes(count)')
 interface RawPollRow {
@@ -106,10 +107,20 @@ interface PollState {
     expiry_duration: '12h' | '24h' | '48h' | '1w';
     watch_date?: string | null;
     watch_time?: WatchTime | null;
-    streaming_platforms?: StreamingPlatform[] | null;
+    watch_custom_time?: string | null;
+    watch_together_link?: string | null;
     allow_suggestions?: boolean;
   }) => Promise<Poll>;
   suggestOption: (pollId: string, option: Omit<PollOption, 'index'>) => Promise<void>;
+  updatePoll: (pollId: string, data: {
+    title?: string;
+    description?: string | null;
+    watch_date?: string | null;
+    watch_time?: WatchTime | null;
+    watch_custom_time?: string | null;
+    watch_together_link?: string | null;
+    allow_suggestions?: boolean;
+  }) => Promise<void>;
   vote: (
     pollId: string,
     optionIndex: number,
@@ -118,6 +129,8 @@ interface PollState {
   changeVote: (pollId: string, newOptionIndex: number) => Promise<void>;
   subscribeToVotes: (pollId: string) => () => void;
   unsubscribeFromVotes: () => void;
+  subscribeToMyPolls: (userId: string) => () => void;
+  unsubscribeFromMyPolls: () => void;
 }
 
 export const usePollStore = create<PollState>((set, get) => ({
@@ -266,29 +279,40 @@ export const usePollStore = create<PollState>((set, get) => ({
       const shareCode = generateShareCode();
       const expiresAt = getExpiresAt(data.expiry_duration);
 
+      const pollData = {
+        creator_id: userId,
+        title: data.title,
+        description: data.description ?? null,
+        options: data.options,
+        expiry_duration: data.expiry_duration,
+        expires_at: expiresAt,
+        is_active: true,
+        share_code: shareCode,
+        watch_date: data.watch_date ?? null,
+        watch_time: data.watch_time ?? null,
+        watch_custom_time: data.watch_custom_time ?? null,
+        watch_together_link: data.watch_together_link ?? null,
+        allow_suggestions: data.allow_suggestions ?? false,
+      };
+
+      console.log('🚀 Creating poll with data:', pollData);
+
       const { data: created, error } = await supabase
         .from('polls')
-        .insert({
-          creator_id: userId,
-          title: data.title,
-          description: data.description ?? null,
-          options: data.options,
-          expiry_duration: data.expiry_duration,
-          expires_at: expiresAt,
-          is_active: true,
-          share_code: shareCode,
-          watch_date: data.watch_date ?? null,
-          watch_time: data.watch_time ?? null,
-          streaming_platforms: data.streaming_platforms ?? null,
-          allow_suggestions: data.allow_suggestions ?? false,
-        })
+        .insert(pollData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase error:', error);
+        throw error;
+      }
+
+      console.log('✅ Poll created successfully:', created);
       return created as Poll;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to create poll';
+      console.error('💥 Error creating poll:', msg, err);
       set({ error: msg });
       throw err;
     } finally {
@@ -416,7 +440,7 @@ export const usePollStore = create<PollState>((set, get) => ({
 
     const { error } = await supabase
       .from('polls')
-      .update({ options: newOptions })
+      .update({ options: newOptions, updated_at: new Date().toISOString() })
       .eq('id', pollId);
 
     if (error) throw error;
@@ -425,6 +449,60 @@ export const usePollStore = create<PollState>((set, get) => ({
       if (!state.currentPoll) return state;
       return { currentPoll: { ...state.currentPoll, options: newOptions } };
     });
+  },
+
+  updatePoll: async (pollId, data) => {
+    set({ isLoading: true, error: null });
+    try {
+      const { error } = await supabase
+        .from('polls')
+        .update({
+          title: data.title,
+          description: data.description ?? null,
+          watch_date: data.watch_date ?? null,
+          watch_time: data.watch_time ?? null,
+          watch_custom_time: data.watch_custom_time ?? null,
+          watch_together_link: data.watch_together_link ?? null,
+          allow_suggestions: data.allow_suggestions ?? false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', pollId);
+
+      if (error) throw error;
+
+      // Refetch the poll to get updated data
+      const { data: poll, error: fetchError } = await supabase
+        .from('polls')
+        .select('*')
+        .eq('id', pollId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const { data: votes, error: votesError } = await supabase
+        .from('poll_votes')
+        .select('*')
+        .eq('poll_id', pollId);
+
+      if (votesError) throw votesError;
+
+      const userId = useAuthStore.getState().user?.id ?? null;
+      const guestId = await getOrCreateGuestId();
+      const result = buildPollWithResults(
+        poll as Poll,
+        (votes ?? []) as PollVote[],
+        userId,
+        guestId,
+      );
+
+      set({ currentPoll: result });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to update poll';
+      set({ error: msg });
+      throw err;
+    } finally {
+      set({ isLoading: false });
+    }
   },
 
   subscribeToVotes: (pollId) => {
@@ -495,6 +573,56 @@ export const usePollStore = create<PollState>((set, get) => ({
     if (activeChannel) {
       supabase.removeChannel(activeChannel);
       activeChannel = null;
+    }
+  },
+
+  subscribeToMyPolls: (userId) => {
+    if (myPollsChannel) {
+      supabase.removeChannel(myPollsChannel);
+      myPollsChannel = null;
+    }
+
+    myPollsChannel = supabase
+      .channel(`my-polls:${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'polls',
+          filter: `creator_id=eq.${userId}`,
+        },
+        (payload) => {
+          const newPoll = payload.new as Poll;
+          const pollListItem: PollListItem = {
+            id: newPoll.id,
+            title: newPoll.title,
+            share_code: newPoll.share_code,
+            expires_at: newPoll.expires_at,
+            is_active: newPoll.is_active,
+            created_at: newPoll.created_at,
+            options: newPoll.options,
+            total_votes: 0,
+          };
+          set((state) => ({
+            myPolls: [pollListItem, ...state.myPolls],
+          }));
+        },
+      )
+      .subscribe();
+
+    return () => {
+      if (myPollsChannel) {
+        supabase.removeChannel(myPollsChannel);
+        myPollsChannel = null;
+      }
+    };
+  },
+
+  unsubscribeFromMyPolls: () => {
+    if (myPollsChannel) {
+      supabase.removeChannel(myPollsChannel);
+      myPollsChannel = null;
     }
   },
 }));
