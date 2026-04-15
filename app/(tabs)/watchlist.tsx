@@ -4,7 +4,7 @@ import { useWatchlistStore } from '@/store/useWatchlistStore';
 import type { WatchlistStatus, WatchlistWithProgress } from '@/types';
 import { useRouter } from 'expo-router';
 import { Check, ChevronDown, Download, Film, Upload } from 'lucide-react-native';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -83,6 +83,14 @@ export default function WatchlistScreen() {
     await fetchWatchlist(user.id);
     setRefreshing(false);
   }, [user, fetchWatchlist]);
+
+  // Counts per status scoped to the active media type filter
+  const statusCounts = useMemo(() => {
+    const base = mediaTypeFilter === 'all' ? items : items.filter((i) => i.media_type === mediaTypeFilter);
+    const counts: Record<string, number> = { all: base.length };
+    base.forEach((i) => { counts[i.status] = (counts[i.status] ?? 0) + 1; });
+    return counts;
+  }, [items, mediaTypeFilter]);
 
   const filtered =
     activeFilter === 'all' ? items : items.filter((i) => i.status === activeFilter);
@@ -199,22 +207,25 @@ export default function WatchlistScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 6, paddingBottom: 8 }}
         >
-          {FILTER_TABS.map((tab) => (
-            <TouchableOpacity
-              key={tab.key}
-              onPress={() => setActiveFilter(tab.key)}
-              activeOpacity={0.8}
-              className={`px-3 py-1 rounded-lg flex-shrink-0 border ${activeFilter === tab.key ? 'bg-accent border-accent' : 'bg-dark-100 border-dark-100'
-                }`}
-            >
-              <Text
-                className={`text-xs font-semibold ${activeFilter === tab.key ? 'text-primary' : 'text-light-200'
+          {FILTER_TABS.map((tab) => {
+            const count = statusCounts[tab.key] ?? 0;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                onPress={() => setActiveFilter(tab.key)}
+                activeOpacity={0.8}
+                className={`px-3 py-1 rounded-lg flex-shrink-0 border ${activeFilter === tab.key ? 'bg-accent border-accent' : 'bg-dark-100 border-dark-100'
                   }`}
               >
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  className={`text-xs font-semibold ${activeFilter === tab.key ? 'text-primary' : 'text-light-200'
+                    }`}
+                >
+                  {tab.label}{count > 0 ? ` (${count})` : ''}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
 

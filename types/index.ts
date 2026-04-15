@@ -3,6 +3,16 @@ export type MediaType = 'kdrama' | 'anime' | 'movie' | 'series';
 export type WatchlistStatus = 'planning' | 'watching' | 'on_hold' | 'completed' | 'dropped';
 
 // ─── TMDB API types ──────────────────────────────────────────────────────────
+
+// TV show creator (returned in `created_by` on /tv/{id} — different from crew director)
+export interface TMDBCreator {
+  id: number;
+  name: string;
+  profile_path: string | null;
+  gender?: number;
+  credit_id?: string;
+}
+
 export interface TMDBDrama {
   id: number;
   name?: string;
@@ -24,6 +34,8 @@ export interface TMDBDrama {
   networks?: { id: number; name: string; logo_path: string }[];
   genres?: { id: number; name: string }[];
   credits?: { cast: TMDBCast[]; crew?: TMDBCrew[] };
+  // TV-only: show creators/showrunners (replaces per-episode crew directors)
+  created_by?: TMDBCreator[];
   media_type?: 'tv' | 'movie';
 }
 
@@ -112,6 +124,13 @@ export interface TMDBPersonSearchResponse {
 }
 
 // ─── App types ───────────────────────────────────────────────────────────────
+export interface FavoritePerson {
+  id: number;
+  name: string;
+  profile_path: string | null;
+  known_for?: string; // character name or job title for context
+}
+
 export interface WatchlistItem {
   id: string;
   user_id: string;

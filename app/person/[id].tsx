@@ -1,10 +1,11 @@
 import ImageWithFallback from '@/components/ImageWithFallback';
 import DramaCard from '@/components/drama/DramaCard';
 import { getImageUrl, getPersonCombinedCredits, getPersonDetail } from '@/services/tmdb';
+import { useFavoritePeopleStore } from '@/store/useFavoritePeopleStore';
 import type { TMDBPersonCredit } from '@/types';
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Calendar, MapPin, User } from 'lucide-react-native';
+import { Calendar, Heart, MapPin, User } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,6 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '';
@@ -33,6 +35,9 @@ export default function PersonDetailScreen() {
   const router = useRouter();
   const [bioExpanded, setBioExpanded] = useState(false);
   const [creditFilter, setCreditFilter] = useState<'all' | 'tv' | 'movie'>('all');
+
+  const favorited = useFavoritePeopleStore((s) => s.favorites.some((f) => f.id === personId));
+  const { addFavorite, removeFavorite } = useFavoritePeopleStore();
 
   const { data: person, isLoading: personLoading } = useQuery({
     queryKey: ['person', id],
@@ -95,6 +100,31 @@ export default function PersonDetailScreen() {
           className="absolute items-center justify-center rounded-full top-14 left-4 w-9 h-9 bg-dark-100 z-10"
         >
           <Text className="text-base text-white">‹</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => {
+            if (favorited) {
+              removeFavorite(personId);
+              Toast.show({ type: 'success', text1: `Removed ${person.name} from favorites` });
+            } else {
+              addFavorite({
+                id: personId,
+                name: person.name,
+                profile_path: person.profile_path,
+                known_for: person.known_for_department,
+              });
+              Toast.show({ type: 'success', text1: `${person.name} added to favorites` });
+            }
+          }}
+          className="absolute items-center justify-center rounded-full top-14 right-4 w-9 h-9 bg-dark-100 z-10"
+        >
+          <Heart
+            size={18}
+            strokeWidth={2}
+            color={favorited ? '#F87171' : '#A8B5DB'}
+            fill={favorited ? '#F87171' : 'transparent'}
+          />
         </TouchableOpacity>
 
         {/* Profile section */}

@@ -11,8 +11,9 @@ import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronRight } from 'lucide-react-native';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useWatchlistStore } from '@/store/useWatchlistStore';
+import { useFavoritePeopleStore } from '@/store/useFavoritePeopleStore';
 import { usePollStore } from '@/store/usePollStore';
+import { useWatchlistStore } from '@/store/useWatchlistStore';
 import { supabase } from '@/services/supabase';
 import type { Profile } from '@/types';
 
@@ -97,11 +98,13 @@ export default function ProfileScreen() {
   const { user, signOut, isLoading: authLoading } = useAuthStore();
   const { items, fetchWatchlist } = useWatchlistStore();
   const { myPolls, fetchMyPolls } = usePollStore();
+  const { favorites, fetchFavorites } = useFavoritePeopleStore();
 
   useEffect(() => {
     if (user) {
       fetchWatchlist(user.id);
       fetchMyPolls(user.id);
+      fetchFavorites(user.id);
     }
   }, [user]);
 
@@ -209,6 +212,10 @@ export default function ProfileScreen() {
         <ActionRow
           label="Edit Profile"
           onPress={() => router.push('/settings/account')}
+        />
+        <ActionRow
+          label={`Favorite People${favorites.length > 0 ? ` (${favorites.length})` : ''}`}
+          onPress={() => router.push('/favorites/people' as never)}
         />
         <ActionRow
           label="My Poll History"

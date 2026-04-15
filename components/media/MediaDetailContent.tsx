@@ -2,9 +2,10 @@ import ImageWithFallback from '@/components/ImageWithFallback';
 import DramaCard from '@/components/drama/DramaCard';
 import DirectorCard from '@/components/media/DirectorCard';
 import { getImageUrl } from '@/services/tmdb';
+import { useFavoritePeopleStore } from '@/store/useFavoritePeopleStore';
 import type { TMDBCast, TMDBDrama, TMDBEpisode, WatchlistStatus } from '@/types';
 import { useRouter } from 'expo-router';
-import { Bookmark, Check, ChevronDown, ChevronUp, Pause, Trash2 } from 'lucide-react-native';
+import { Bookmark, Check, ChevronDown, ChevronUp, Heart, Pause, Trash2 } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import {
     ActivityIndicator,
@@ -15,6 +16,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 const STATUS_OPTIONS = [
     { value: 'watching' as WatchlistStatus, label: 'Watching', icon: 'play' },
@@ -52,13 +54,46 @@ function StatusIcon({ iconName }: { iconName: string }) {
 
 function CastCard({ cast, onPress }: { cast: TMDBCast; onPress: () => void }) {
     const photoUrl = getImageUrl(cast.profile_path, 'w300');
+    const favorited = useFavoritePeopleStore((s) => s.favorites.some((f) => f.id === cast.id));
+    const { addFavorite, removeFavorite } = useFavoritePeopleStore();
+
     return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.7} className="items-center w-20 mr-3">
-            <ImageWithFallback
-                source={photoUrl ? { uri: photoUrl } : undefined}
-                style={{ width: 64, height: 64, borderRadius: 32 }}
-                contentFit="cover"
-            />
+            <View>
+                <ImageWithFallback
+                    source={photoUrl ? { uri: photoUrl } : undefined}
+                    style={{ width: 64, height: 64, borderRadius: 32 }}
+                    contentFit="cover"
+                />
+                <TouchableOpacity
+                    onPress={() => {
+                        if (favorited) {
+                            removeFavorite(cast.id);
+                            Toast.show({ type: 'success', text1: `Removed ${cast.name} from favorites` });
+                        } else {
+                            addFavorite({ id: cast.id, name: cast.name, profile_path: cast.profile_path, known_for: cast.character });
+                            Toast.show({ type: 'success', text1: `${cast.name} added to favorites` });
+                        }
+                    }}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        right: 0,
+                        backgroundColor: 'rgba(0,0,0,0.65)',
+                        borderRadius: 10,
+                        padding: 3,
+                    }}
+                >
+                    <Heart
+                        size={11}
+                        strokeWidth={2}
+                        color={favorited ? '#F87171' : '#fff'}
+                        fill={favorited ? '#F87171' : 'transparent'}
+                    />
+                </TouchableOpacity>
+            </View>
             <Text className="text-white text-[11px] font-medium text-center mt-1" numberOfLines={2}>
                 {cast.name}
             </Text>
@@ -124,6 +159,9 @@ export default function MediaDetailContent({
             : '';
     const rating = media.vote_average ? media.vote_average.toFixed(1) : '–';
     const cast = media.credits?.cast ?? [];
+
+    // Movies: filter crew by job=Director | TV series: use top-level created_by (showrunners)
+    // TMDB TV API does NOT include directors in series-level credits — they are per-episode only
     const directors = useMemo(
         () =>
             (media.credits?.crew ?? [])
@@ -131,6 +169,7 @@ export default function MediaDetailContent({
                 .slice(0, 5),
         [media.credits?.crew],
     );
+    const creators = useMemo(() => media.created_by ?? [], [media.created_by]);
 
     return (
         <>
@@ -319,10 +358,30 @@ export default function MediaDetailContent({
                         </View>
                     )}
 
-                    {/* Directors */}
-                    {directors.length > 0 && (
+                    {/* Created By (TV series) */}
+                    {isDrama && creators.length > 0 && (
                         <View className="mt-5">
-                            <Text className="mb-3 text-base font-semibold text-white">Directors</Text>
+                            <Text className="mb-3 text-base font-semibold text-white">Created By</Text>
+                            <FlatList
+                                data={creators}
+                                keyExtractor={(item) => String(item.id)}
+                                renderItem={({ item }) => (
+                                    <DirectorCard
+                                        director={{ id: item.id, name: item.name, profile_path: item.profile_path, job: 'Creator', department: 'Writing' }}
+                                        onPress={() => router.push(`/person/${item.id}` as never)}
+                                    />
+                                )}
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                scrollEnabled
+                            />
+                        </View>
+                    )}
+
+                    {/* Directors (movies only — TV directors are per-episode, not series-level) */}
+                    {!isDrama && directors.length > 0 && (
+                        <View className="mt-5">
+                            <Text className="mb-3 text-base font-semibold text-white">Director</Text>
                             <FlatList
                                 data={directors}
                                 keyExtractor={(item) => String(item.id)}

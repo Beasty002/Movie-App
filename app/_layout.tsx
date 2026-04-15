@@ -140,6 +140,7 @@ export default function RootLayout() {
           <Stack.Screen name="settings" options={{ headerShown: false }} />
           <Stack.Screen name="watchlist/import" options={{ headerShown: false }} />
           <Stack.Screen name="watchlist/export" options={{ headerShown: false }} />
+          <Stack.Screen name="favorites/people" options={{ headerShown: false }} />
         </Stack>
       </View>
       <Toast config={toastConfig} position="bottom" bottomOffset={60} />
