@@ -15,14 +15,18 @@
       "distribution": "internal",
       "env": {
         "GRADLE_OPTS": "-Dorg.gradle.internal.http.connectionTimeout=60000 -Dorg.gradle.internal.http.readTimeout=60000",
-        "SENTRY_AUTH_TOKEN": "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"
+        "SENTRY_AUTH_TOKEN": "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",
+        "SENTRY_ORG": "beasty-g4",
+        "SENTRY_PROJECT": "votch"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "GRADLE_OPTS": "-Dorg.gradle.internal.http.connectionTimeout=60000 -Dorg.gradle.internal.http.readTimeout=60000",
-        "SENTRY_AUTH_TOKEN": "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"
+        "SENTRY_AUTH_TOKEN": "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",
+        "SENTRY_ORG": "beasty-g4",
+        "SENTRY_PROJECT": "votch"
       },
       "android": {
         "gradleCommand": ":app:bundleRelease"
