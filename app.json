@@ -46,6 +46,14 @@
     "plugins": [
       "expo-router",
       [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "organization": "YOUR_SENTRY_ORG_SLUG",
+          "project": "YOUR_SENTRY_PROJECT_SLUG"
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/votch-icon.png",

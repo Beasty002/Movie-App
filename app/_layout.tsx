@@ -1,3 +1,21 @@
+// Initialize Sentry FIRST, before any other imports
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  tracesSampleRate: 1.0,
+  attachStacktrace: true,
+  debug: false,
+  // Ignore console warnings from expo-notifications
+  beforeSend(event, hint) {
+    if (hint.originalException?.message?.includes('Expo Go')) {
+      return null; // Drop noisy Expo Go warnings
+    }
+    return event;
+  },
+});
+
+// Now import everything else
 import { GradientBackground } from '@/components/ui/GradientBackground';
 import { useAuthStore } from '@/store/useAuthStore';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -121,7 +139,7 @@ function DeepLinkHandler() {
   return null;
 }
 
-export default function RootLayout() {
+function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthGate />
@@ -150,3 +168,5 @@ export default function RootLayout() {
     </QueryClientProvider>
   );
 }
+
+export default Sentry.wrap(RootLayout);
