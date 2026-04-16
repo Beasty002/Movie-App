@@ -1,60 +1,12 @@
-import { useState } from 'react';
-import {
-  ActivityIndicator,
-  ScrollView,
-  Switch,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Bell, Globe, Shield, Trash2 } from 'lucide-react-native';
-import { useAuthStore } from '@/store/useAuthStore';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { ToggleRow } from '@/components/ui/ToggleRow';
 import { supabase } from '@/services/supabase';
-
-interface UserPreferences {
-  user_id: string;
-  notify_poll_votes: boolean;
-  notify_poll_expiry: boolean;
-  notify_new_episodes: boolean;
-}
-
-function SectionHeader({ title }: { title: string }) {
-  return (
-    <Text className="text-light-300 text-[11px] uppercase tracking-wide px-4 mb-2 mt-6">
-      {title}
-    </Text>
-  );
-}
-
-interface ToggleRowProps {
-  label: string;
-  description?: string;
-  value: boolean;
-  onToggle: (v: boolean) => void;
-  disabled?: boolean;
-}
-
-function ToggleRow({ label, description, value, onToggle, disabled }: ToggleRowProps) {
-  return (
-    <View className="flex-row items-center bg-dark-100 px-4 py-3.5 rounded-xl mb-2">
-      <View className="flex-1 mr-3">
-        <Text className="text-white text-base">{label}</Text>
-        {description ? (
-          <Text className="text-light-300 text-[12px] mt-0.5">{description}</Text>
-        ) : null}
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onToggle}
-        disabled={disabled}
-        trackColor={{ false: '#2D2D3A', true: '#AB8BFF' }}
-        thumbColor="#FFFFFF"
-      />
-    </View>
-  );
-}
+import { useAuthStore } from '@/store/useAuthStore';
+import { UserPreferences } from '@/types';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
+import { ArrowLeft, Bell, Globe, Shield, Trash2 } from 'lucide-react-native';
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
   const router = useRouter();

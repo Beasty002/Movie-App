@@ -3,6 +3,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Linking from 'expo-linking';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import Toast from 'react-native-toast-message';
@@ -126,6 +127,7 @@ export default function RootLayout() {
       <AuthGate />
       <DeepLinkHandler />
       <View className="flex-1 bg-primary">
+        <StatusBar style="light" backgroundColor="#030014" translucent={false} />
         <GradientBackground />
         <Stack>
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
@@ -141,6 +143,7 @@ export default function RootLayout() {
           <Stack.Screen name="watchlist/import" options={{ headerShown: false }} />
           <Stack.Screen name="watchlist/export" options={{ headerShown: false }} />
           <Stack.Screen name="favorites/people" options={{ headerShown: false }} />
+          <Stack.Screen name="notifications" options={{ headerShown: false }} />
         </Stack>
       </View>
       <Toast config={toastConfig} position="bottom" bottomOffset={60} />

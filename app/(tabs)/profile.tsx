@@ -1,25 +1,44 @@
-import { useEffect } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
-import { ChevronRight } from 'lucide-react-native';
+import { GenreChart } from '@/components/profile/GenreChart';
+import { WeeklyBar } from '@/components/profile/WeeklyBar';
+import { StreakBadge } from '@/components/ui/StreakBadge';
+import { useStreak } from '@/hooks/useStreak';
+import { getUnlockedAchievements } from '@/services/achievements';
+import { supabase } from '@/services/supabase';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useFavoritePeopleStore } from '@/store/useFavoritePeopleStore';
 import { usePollStore } from '@/store/usePollStore';
 import { useWatchlistStore } from '@/store/useWatchlistStore';
-import { supabase } from '@/services/supabase';
-import type { Profile } from '@/types';
+import type { Achievement, Profile, WeeklyStats } from '@/types';
+import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
+import { Award, ChevronRight, Flame, Heart, PencilIcon, Star, Trophy, X, Zap } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 function formatMemberSince(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+function getAchievementIcon(label: string | undefined, size = 20) {
+  if (!label) return <Award size={size} color="#AB8BFF" strokeWidth={1.5} />;
+
+  const lowerLabel = label.toLowerCase();
+  if (lowerLabel.includes('streak')) return <Flame size={size} color="#FF6B6B" strokeWidth={1.5} />;
+  if (lowerLabel.includes('rating')) return <Star size={size} color="#FFD93D" strokeWidth={1.5} />;
+  if (lowerLabel.includes('vote')) return <Zap size={size} color="#6BCB77" strokeWidth={1.5} />;
+  if (lowerLabel.includes('heart') || lowerLabel.includes('favorite')) return <Heart size={size} color="#FF6B9D" strokeWidth={1.5} />;
+  if (lowerLabel.includes('champion') || lowerLabel.includes('master') || lowerLabel.includes('poll')) return <Trophy size={size} color="#FFD93D" strokeWidth={1.5} />;
+
+  return <Award size={size} color="#AB8BFF" strokeWidth={1.5} />;
 }
 
 function InitialsAvatar({ name }: { name: string }) {
@@ -30,28 +49,24 @@ function InitialsAvatar({ name }: { name: string }) {
     .join('');
 
   return (
-    <View className="w-20 h-20 rounded-full bg-accent items-center justify-center">
-      <Text className="text-primary font-bold text-2xl">{initials}</Text>
+    <View className="items-center justify-center w-16 h-16 bg-purple-600 border-2 rounded-full border-purple-400/40">
+      <Text className="text-xl font-bold text-white">{initials}</Text>
     </View>
   );
 }
 
-interface StatBlockProps {
-  value: number;
+interface StatCardProps {
+  value: number | string;
   label: string;
 }
 
-function StatBlock({ value, label }: StatBlockProps) {
+function StatCard({ value, label }: StatCardProps) {
   return (
-    <View className="flex-1 items-center">
-      <Text className="text-white font-bold text-xl">{value}</Text>
-      <Text className="text-light-300 text-[11px] text-center mt-0.5">{label}</Text>
+    <View className="items-center flex-1 p-4 border rounded-lg bg-dark-100 border-dark-200">
+      <Text className="text-2xl font-bold text-accent">{value}</Text>
+      <Text className="mt-1 text-xs text-center text-light-300">{label}</Text>
     </View>
   );
-}
-
-function Divider() {
-  return <View className="w-px bg-dark-200 self-stretch" />;
 }
 
 interface ActionRowProps {
@@ -67,20 +82,18 @@ function ActionRow({ label, onPress, destructive = false, loading = false }: Act
       onPress={onPress}
       activeOpacity={0.8}
       disabled={loading}
-      className={`flex-row items-center rounded-xl px-4 py-4 ${
-        destructive
-          ? 'bg-red-500/10 border border-red-500/30'
-          : 'bg-dark-100'
-      }`}
+      className={`flex-row items-center rounded-lg px-4 py-3 border ${destructive
+        ? 'bg-red-500/10 border-red-500/30'
+        : 'bg-dark-100 border-dark-200'
+        }`}
     >
       {loading ? (
         <ActivityIndicator color={destructive ? '#EF4444' : '#AB8BFF'} size="small" />
       ) : (
         <>
           <Text
-            className={`text-base flex-1 ${
-              destructive ? 'text-red-400 font-medium' : 'text-white'
-            }`}
+            className={`text-sm flex-1 font-medium ${destructive ? 'text-red-400' : 'text-white'
+              }`}
           >
             {label}
           </Text>
@@ -99,14 +112,64 @@ export default function ProfileScreen() {
   const { items, fetchWatchlist } = useWatchlistStore();
   const { myPolls, fetchMyPolls } = usePollStore();
   const { favorites, fetchFavorites } = useFavoritePeopleStore();
+  const { streak, bestStreak, todayWatched, streakAtRisk } = useStreak();
+
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
+  const [weeklyStats, setWeeklyStats] = useState<WeeklyStats | null>(null);
 
   useEffect(() => {
     if (user) {
       fetchWatchlist(user.id);
       fetchMyPolls(user.id);
       fetchFavorites(user.id);
+      loadAchievements(user.id);
+      loadWeeklyStats(user.id);
     }
   }, [user]);
+
+  const loadAchievements = async (userId: string) => {
+    const achs = await getUnlockedAchievements(userId);
+    setAchievements(achs);
+  };
+
+  const loadWeeklyStats = async (userId: string) => {
+    try {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      const { data: progress } = await supabase
+        .from('progress')
+        .select('watched_at')
+        .eq('user_id', userId)
+        .gte('watched_at', sevenDaysAgo.toISOString());
+
+      const episodesThisWeek = progress?.length || 0;
+      const hoursThisWeek = episodesThisWeek * 1; // Simplified: 1 hour per episode
+
+      // Build genre breakdown
+      const { data: watchlistData } = await supabase
+        .from('watchlist')
+        .select('*')
+        .eq('user_id', userId)
+        .limit(50);
+
+      const genreBreakdown: Record<string, number> = {};
+      // This would require genre info from TMDB for each item
+
+      setWeeklyStats({
+        episodesThisWeek,
+        hoursThisWeek,
+        topDrama: null,
+        genreBreakdown,
+        comparedToLastWeek: 0,
+        weekStart: sevenDaysAgo.toISOString().split('T')[0],
+        weekEnd: now.toISOString().split('T')[0],
+      });
+    } catch (error) {
+      console.error('Error loading weekly stats:', error);
+    }
+  };
 
   const { data: profile, isLoading: profileLoading } = useQuery<Profile | null>({
     queryKey: ['profile', user?.id],
@@ -135,103 +198,251 @@ export default function ProfileScreen() {
     ]);
   };
 
-  // Watchlist stats
+  // Calculate user stats
   const totalTracked = items.length;
   const watching = items.filter((i) => i.status === 'watching').length;
   const completed = items.filter((i) => i.status === 'completed').length;
+  const dropped = items.filter((i) => i.status === 'dropped').length;
   const episodesWatched = items.reduce((sum, i) => sum + i.episodes_watched, 0);
+
+  const hoursWatched = Math.round(episodesWatched * 1.1); // Rough estimate: 60-66 min per episode
 
   // Poll stats
   const pollsCreated = myPolls.length;
   const totalVoters = myPolls.reduce((sum, p) => sum + p.total_votes, 0);
+
+  const unlockedCount = achievements.filter((a) => a.isUnlocked).length;
 
   if (!user) return null;
 
   const displayName = profile?.username ?? user.email?.split('@')[0] ?? 'User';
   const memberSince = formatMemberSince(user.created_at);
 
+  // Weekly bar data (mock - would come from DB)
+  const weeklyData = [0, 2, 3, 1, 0, 4, 2];
+
   return (
-    <ScrollView
-      className="flex-1 bg-primary"
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 120 }}
-    >
-      {/* Header */}
-      <View className="px-4 pt-14 pb-6 items-center">
-        {profileLoading ? (
-          <View className="w-20 h-20 rounded-full bg-dark-100 items-center justify-center">
-            <ActivityIndicator color="#AB8BFF" />
+    <>
+      <ScrollView
+        className="flex-1 bg-primary"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
+        {/* Section 1: Profile Header */}
+        <View className="px-4 pb-5 border-b pt-14 bg-dark-100 border-dark-200">
+          {/* Avatar + Info + Streak row */}
+          <View className="flex-row items-center gap-3 mb-4">
+            {profileLoading ? (
+              <View className="items-center justify-center w-16 h-16 rounded-full bg-dark-200">
+                <ActivityIndicator color="#A78BFA" />
+              </View>
+            ) : (
+              <InitialsAvatar name={displayName} />
+            )}
+
+            <View className="flex-1 min-w-0">
+              <Text className="text-xl font-bold leading-tight text-white" numberOfLines={1}>
+                {displayName}
+              </Text>
+              {profile?.bio ? (
+                <Text className="text-light-300 text-xs mt-0.5 leading-4" numberOfLines={2}>
+                  {profile.bio}
+                </Text>
+              ) : null}
+              <Text className="text-light-300 text-[11px] mt-1">Member since {memberSince}</Text>
+            </View>
+
+            <StreakBadge streak={streak} bestStreak={bestStreak} size="md" isAtRisk={streakAtRisk} />
           </View>
-        ) : (
-          <InitialsAvatar name={displayName} />
-        )}
 
-        <Text className="text-white font-bold text-xl mt-4">{displayName}</Text>
-
-        {profile?.bio ? (
-          <Text className="text-light-200 text-[13px] text-center mt-1 px-8">
-            {profile.bio}
-          </Text>
-        ) : null}
-
-        <Text className="text-light-300 text-[12px] mt-2">
-          Member since {memberSince}
-        </Text>
-      </View>
-
-      {/* Watchlist Stats */}
-      <View className="mx-4 bg-dark-100 rounded-2xl py-4 px-2 mb-3">
-        <Text className="text-light-300 text-[11px] text-center mb-3 uppercase tracking-wide">
-          Watchlist
-        </Text>
-        <View className="flex-row">
-          <StatBlock value={totalTracked} label="Tracked" />
-          <Divider />
-          <StatBlock value={watching} label="Watching" />
-          <Divider />
-          <StatBlock value={completed} label="Completed" />
-          <Divider />
-          <StatBlock value={episodesWatched} label="Episodes" />
+          {/* Edit Profile Button */}
+          <TouchableOpacity
+            onPress={() => router.push('/settings/account')}
+            activeOpacity={0.75}
+            className="flex-row items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-accent/50 bg-accent/10"
+          >
+            <PencilIcon size={14} color="#AB8BFF" strokeWidth={2} />
+            <Text className="text-sm font-semibold text-accent">Edit Profile</Text>
+          </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Poll Stats */}
-      <View className="mx-4 bg-dark-100 rounded-2xl py-4 px-2 mb-6">
-        <Text className="text-light-300 text-[11px] text-center mb-3 uppercase tracking-wide">
-          Polls
-        </Text>
-        <View className="flex-row">
-          <StatBlock value={pollsCreated} label="Polls Created" />
-          <Divider />
-          <StatBlock value={totalVoters} label="Total Voters" />
+        {/* Section 2: Stats Grid */}
+        <View className="gap-3 p-4">
+          <View className="flex-row gap-3">
+            <StatCard value={totalTracked} label="Total Dramas" />
+            <StatCard value={watching} label="Watching Now" />
+            <StatCard value={completed} label="Completed" />
+          </View>
+          <View className="flex-row gap-3">
+            <StatCard value={episodesWatched} label="Episodes Watched" />
+            <StatCard value={hoursWatched} label="Hours Watched" />
+            <StatCard value={dropped} label="Dropped" />
+          </View>
         </View>
-      </View>
 
-      {/* Links */}
-      <View className="px-4 gap-y-3">
-        <ActionRow
-          label="Edit Profile"
-          onPress={() => router.push('/settings/account')}
-        />
-        <ActionRow
-          label={`Favorite People${favorites.length > 0 ? ` (${favorites.length})` : ''}`}
-          onPress={() => router.push('/favorites/people' as never)}
-        />
-        <ActionRow
-          label="My Poll History"
-          onPress={() => router.push('/poll/history' as never)}
-        />
-        <ActionRow
-          label="Settings"
-          onPress={() => router.push('/settings' as never)}
-        />
-        <ActionRow
-          label="Sign Out"
-          onPress={handleSignOut}
-          destructive
-          loading={authLoading}
-        />
-      </View>
-    </ScrollView>
+        {/* Section 3: Weekly Activity */}
+        <View className="px-4 mb-4">
+          <WeeklyBar
+            data={weeklyData}
+            totalEpisodes={weeklyData.reduce((a, b) => a + b, 0)}
+            totalHours={weeklyData.reduce((a, b) => a + b, 0)}
+          />
+        </View>
+
+        {/* Section 4: Genre Breakdown */}
+        <View className="px-4 mb-4">
+          <GenreChart
+            genres={[
+              { name: 'K-Drama', count: 25 },
+              { name: 'Romance', count: 18 },
+              { name: 'Thriller', count: 12 },
+              { name: 'Comedy', count: 8 },
+            ]}
+          />
+        </View>
+
+        {/* Section 5: Achievements */}
+        <View className="px-4 mb-4">
+          <View className="p-4 border rounded-lg bg-dark-100 border-dark-200">
+            <View className="flex-row items-center justify-between mb-3">
+              <Text className="text-sm font-semibold text-white">Achievements</Text>
+              <Text className="text-xs font-semibold text-accent">
+                {unlockedCount}/{achievements.length} unlocked
+              </Text>
+            </View>
+            <View className="gap-2">
+              {achievements.map((achievement) => (
+                <TouchableOpacity
+                  key={achievement.id}
+                  onPress={() => setSelectedAchievement(achievement)}
+                  activeOpacity={0.75}
+                  className={`flex-row items-center gap-3 px-3 py-3 rounded-xl border ${achievement.isUnlocked
+                    ? 'bg-accent/10 border-accent/40'
+                    : 'bg-dark-200/50 border-dark-200'
+                    }`}
+                >
+                  <View
+                    className={`w-10 h-10 rounded-full items-center justify-center ${achievement.isUnlocked ? 'bg-accent/20' : 'bg-dark-200'
+                      }`}
+                  >
+                    <View className={achievement.isUnlocked ? 'opacity-100' : 'opacity-30'}>
+                      {getAchievementIcon(achievement.label)}
+                    </View>
+                  </View>
+                  <View className="flex-1">
+                    <Text
+                      className={`text-sm font-semibold ${achievement.isUnlocked ? 'text-white' : 'text-light-300'
+                        }`}
+                    >
+                      {achievement.label}
+                    </Text>
+                    <Text className="text-xs text-light-300 mt-0.5" numberOfLines={1}>
+                      {achievement.description}
+                    </Text>
+                  </View>
+                  {achievement.isUnlocked ? (
+                    <View className="items-end">
+                      <Award size={14} color="#AB8BFF" strokeWidth={2} />
+                      {achievement.unlockedAt && (
+                        <Text className="text-[10px] text-light-300 mt-0.5">
+                          {new Date(achievement.unlockedAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </Text>
+                      )}
+                    </View>
+                  ) : (
+                    <View className="items-center justify-center w-5 h-5 rounded-full bg-dark-200">
+                      <Text className="text-[10px] text-light-300">🔒</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+
+        {/* Section 6: Poll Stats */}
+        <View className="px-4 mb-4">
+          <View className="p-4 border rounded-lg bg-dark-100 border-dark-200">
+            <Text className="mb-3 text-sm font-semibold text-white">Poll Stats</Text>
+            <View className="gap-2">
+              <View className="flex-row justify-between">
+                <Text className="text-sm text-light-300">Polls Created</Text>
+                <Text className="font-semibold text-white">{pollsCreated}</Text>
+              </View>
+              <View className="flex-row justify-between">
+                <Text className="text-sm text-light-300">Total Votes Received</Text>
+                <Text className="font-semibold text-white">{totalVoters}</Text>
+              </View>
+            </View>
+            {pollsCreated > 0 && (
+              <TouchableOpacity
+                onPress={() => router.push('/poll/history')}
+                className="py-2 mt-3"
+              >
+                <Text className="text-sm font-medium text-accent">View Poll History →</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {/* Section 7: Links */}
+        <View className="gap-2 px-4">
+          <ActionRow
+            label={`Favorite People${favorites.length > 0 ? ` (${favorites.length})` : ''}`}
+            onPress={() => router.push('/favorites/people')}
+          />
+          <ActionRow
+            label="Settings"
+            onPress={() => router.push('/settings')}
+          />
+          <ActionRow
+            label="Sign Out"
+            onPress={handleSignOut}
+            destructive
+            loading={authLoading}
+          />
+        </View>
+      </ScrollView>
+
+      {/* Achievement Detail Modal */}
+      <Modal
+        visible={selectedAchievement !== null}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSelectedAchievement(null)}
+      >
+        <View className="items-center justify-center flex-1 p-4 bg-black/50">
+          <View className="items-center w-full max-w-xs p-6 border rounded-lg bg-dark-100 border-dark-200">
+            <TouchableOpacity
+              onPress={() => setSelectedAchievement(null)}
+              className="absolute p-2 top-4 right-4"
+            >
+              <X size={24} color="#A8B5DB" />
+            </TouchableOpacity>
+            {selectedAchievement && (
+              <>
+                <View className="items-center justify-center w-16 h-16 mb-4 rounded-full bg-accent/20">
+                  {getAchievementIcon(selectedAchievement.label, 36)}
+                </View>
+                <Text className="mb-2 text-lg font-bold text-white">
+                  {selectedAchievement.label}
+                </Text>
+                <Text className="mb-4 text-sm text-center text-light-300">
+                  {selectedAchievement.description}
+                </Text>
+                {selectedAchievement.isUnlocked && selectedAchievement.unlockedAt && (
+                  <Text className="text-xs text-light-400">
+                    Unlocked {new Date(selectedAchievement.unlockedAt).toLocaleDateString()}
+                  </Text>
+                )}
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }

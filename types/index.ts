@@ -239,3 +239,69 @@ export interface PollListItem {
   created_at: string;
   options: PollOption[];
 }
+
+// ─── Notification & Gamification types ────────────────────────────────────────
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: 'poll_vote' | 'poll_ending' | 'poll_ended' | 'episode_release' | 'streak_reminder' | 'weekly_recap' | 'badge_unlocked' | 'friend_activity';
+  title: string;
+  body: string;
+  payload: Record<string, unknown> | null;
+  is_read: boolean;
+  created_at: string;
+}
+
+export type AchievementKey =
+  | 'first_steps'
+  | 'on_fire'
+  | 'binge_watcher'
+  | 'critic'
+  | 'completionist'
+  | 'poll_master'
+  | 'social_butterfly'
+  | 'night_owl'
+  | 'speed_watcher';
+
+export interface Achievement {
+  id: string;
+  key: AchievementKey;
+  label: string;
+  description: string;
+  icon: string;
+  unlockedAt: string | null;
+  isUnlocked: boolean;
+}
+
+export interface WeeklyStats {
+  episodesThisWeek: number;
+  hoursThisWeek: number;
+  topDrama: WatchlistItem | null;
+  genreBreakdown: Record<string, number>;
+  comparedToLastWeek: number;
+  weekStart: string;
+  weekEnd: string;
+}
+
+export interface StreakData {
+  current: number;
+  best: number;
+  lastWatchedDate: string | null;
+  todayWatched: boolean;
+}
+
+export interface UserStats {
+  totalTracked: number;
+  totalWatching: number;
+  totalCompleted: number;
+  totalDropped: number;
+  totalEpisodesWatched: number;
+  totalHoursWatched: number;
+  averageRating: number;
+  favoriteGenre: string | null;
+  currentStreak: number;
+  bestStreak: number;
+  pollsCreated: number;
+  totalPollVotes: number;
+}
