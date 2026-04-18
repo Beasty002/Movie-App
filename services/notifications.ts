@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Device from 'expo-device';
+import type { NotificationTriggerInput } from 'expo-notifications';
 import { supabase } from './supabase';
 
 // Lazy load Notifications to avoid crashes in Expo Go
@@ -130,7 +131,7 @@ export async function scheduleLocalNotification(
             trigger: {
                 type: 'time-interval' as const,
                 seconds: triggerSeconds,
-            },
+            } as unknown as NotificationTriggerInput,
         });
 
         return notificationId;
