@@ -120,8 +120,14 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Clear build caches
+        run: |
+          npm cache clean --force
+          rm -rf ~/.gradle/caches
+          echo "Build caches cleared"
+
       - name: Build Android (Local)
-        run: eas build --platform android --profile production --local --non-interactive --wait
+        run: eas build --platform android --profile production --local --non-interactive --wait --clear-cache
 
       - name: Upload AAB
         uses: actions/upload-artifact@v4
