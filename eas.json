@@ -8,34 +8,19 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "GRADLE_OPTS": "-Dorg.gradle.internal.http.connectionTimeout=60000 -Dorg.gradle.internal.http.readTimeout=60000",
-        "EXPO_PUBLIC_SUPABASE_URL": "$EXPO_PUBLIC_SUPABASE_URL",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "$EXPO_PUBLIC_SUPABASE_ANON_KEY",
-        "EXPO_PUBLIC_TMDB_API_KEY": "$EXPO_PUBLIC_TMDB_API_KEY",
-        "EXPO_PUBLIC_TMDB_BASE_URL": "$EXPO_PUBLIC_TMDB_BASE_URL",
-        "EXPO_PUBLIC_TMDB_IMAGE_URL": "$EXPO_PUBLIC_TMDB_IMAGE_URL"
+        "GRADLE_OPTS": "-Dorg.gradle.internal.http.connectionTimeout=60000 -Dorg.gradle.internal.http.readTimeout=60000"
       }
     },
     "preview": {
       "distribution": "internal",
       "env": {
-        "GRADLE_OPTS": "-Dorg.gradle.internal.http.connectionTimeout=60000 -Dorg.gradle.internal.http.readTimeout=60000",
-        "EXPO_PUBLIC_SUPABASE_URL": "$EXPO_PUBLIC_SUPABASE_URL",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "$EXPO_PUBLIC_SUPABASE_ANON_KEY",
-        "EXPO_PUBLIC_TMDB_API_KEY": "$EXPO_PUBLIC_TMDB_API_KEY",
-        "EXPO_PUBLIC_TMDB_BASE_URL": "$EXPO_PUBLIC_TMDB_BASE_URL",
-        "EXPO_PUBLIC_TMDB_IMAGE_URL": "$EXPO_PUBLIC_TMDB_IMAGE_URL"
+        "GRADLE_OPTS": "-Dorg.gradle.internal.http.connectionTimeout=60000 -Dorg.gradle.internal.http.readTimeout=60000"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "GRADLE_OPTS": "-Dorg.gradle.internal.http.connectionTimeout=60000 -Dorg.gradle.internal.http.readTimeout=60000",
-        "EXPO_PUBLIC_SUPABASE_URL": "$EXPO_PUBLIC_SUPABASE_URL",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "$EXPO_PUBLIC_SUPABASE_ANON_KEY",
-        "EXPO_PUBLIC_TMDB_API_KEY": "$EXPO_PUBLIC_TMDB_API_KEY",
-        "EXPO_PUBLIC_TMDB_BASE_URL": "$EXPO_PUBLIC_TMDB_BASE_URL",
-        "EXPO_PUBLIC_TMDB_IMAGE_URL": "$EXPO_PUBLIC_TMDB_IMAGE_URL"
+        "GRADLE_OPTS": "-Dorg.gradle.internal.http.connectionTimeout=60000 -Dorg.gradle.internal.http.readTimeout=60000"
       },
       "android": {
         "gradleCommand": ":app:bundleRelease"
