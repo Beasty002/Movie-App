@@ -18,10 +18,7 @@
         "EXPO_PUBLIC_SENTRY_DSN": "https://5905ba1ca14f2b5f6031798283a8a767@o4510389855387649.ingest.us.sentry.io/4511228542451712",
         "SENTRY_ORG": "beasty-g4",
         "SENTRY_PROJECT": "votch"
-      },
-      "secrets": [
-        "SENTRY_AUTH_TOKEN"
-      ]
+      }
     },
     "production": {
       "autoIncrement": true,
@@ -31,9 +28,6 @@
         "SENTRY_ORG": "beasty-g4",
         "SENTRY_PROJECT": "votch"
       },
-      "secrets": [
-        "SENTRY_AUTH_TOKEN"
-      ],
       "android": {
         "gradleCommand": ":app:bundleRelease"
       }
