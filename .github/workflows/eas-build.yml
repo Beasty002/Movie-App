@@ -16,11 +16,11 @@ jobs:
     environment: production
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
-      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
-      EXPO_PUBLIC_TMDB_API_KEY: ${{ secrets.EXPO_PUBLIC_TMDB_API_KEY }}
-      EXPO_PUBLIC_TMDB_BASE_URL: ${{ secrets.EXPO_PUBLIC_TMDB_BASE_URL }}
-      EXPO_PUBLIC_TMDB_IMAGE_URL: ${{ secrets.EXPO_PUBLIC_TMDB_IMAGE_URL }}
+      EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+      EXPO_PUBLIC_TMDB_API_KEY: ${{ vars.EXPO_PUBLIC_TMDB_API_KEY }}
+      EXPO_PUBLIC_TMDB_BASE_URL: ${{ vars.EXPO_PUBLIC_TMDB_BASE_URL }}
+      EXPO_PUBLIC_TMDB_IMAGE_URL: ${{ vars.EXPO_PUBLIC_TMDB_IMAGE_URL }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -30,40 +30,70 @@ jobs:
           echo "🔍 Validating required environment variables..."
           
           MISSING_VARS=()
+          FOUND_VARS=()
           
+          # Check Repository Secret
           if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
-            MISSING_VARS+=("EXPO_TOKEN")
+            MISSING_VARS+=("EXPO_TOKEN (Repository Secret)")
+          else
+            FOUND_VARS+=("✓ EXPO_TOKEN")
           fi
           
-          if [ -z "${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}" ]; then
-            MISSING_VARS+=("EXPO_PUBLIC_SUPABASE_URL")
+          # Check Repository Environment variables
+          if [ -z "${{ vars.EXPO_PUBLIC_SUPABASE_URL }}" ]; then
+            MISSING_VARS+=("EXPO_PUBLIC_SUPABASE_URL (Repository Environment)")
+          else
+            FOUND_VARS+=("✓ EXPO_PUBLIC_SUPABASE_URL")
           fi
           
-          if [ -z "${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}" ]; then
-            MISSING_VARS+=("EXPO_PUBLIC_SUPABASE_ANON_KEY")
+          if [ -z "${{ vars.EXPO_PUBLIC_SUPABASE_ANON_KEY }}" ]; then
+            MISSING_VARS+=("EXPO_PUBLIC_SUPABASE_ANON_KEY (Repository Environment)")
+          else
+            FOUND_VARS+=("✓ EXPO_PUBLIC_SUPABASE_ANON_KEY")
           fi
           
-          if [ -z "${{ secrets.EXPO_PUBLIC_TMDB_API_KEY }}" ]; then
-            MISSING_VARS+=("EXPO_PUBLIC_TMDB_API_KEY")
+          if [ -z "${{ vars.EXPO_PUBLIC_TMDB_API_KEY }}" ]; then
+            MISSING_VARS+=("EXPO_PUBLIC_TMDB_API_KEY (Repository Environment)")
+          else
+            FOUND_VARS+=("✓ EXPO_PUBLIC_TMDB_API_KEY")
           fi
           
-          if [ -z "${{ secrets.EXPO_PUBLIC_TMDB_BASE_URL }}" ]; then
-            MISSING_VARS+=("EXPO_PUBLIC_TMDB_BASE_URL")
+          if [ -z "${{ vars.EXPO_PUBLIC_TMDB_BASE_URL }}" ]; then
+            MISSING_VARS+=("EXPO_PUBLIC_TMDB_BASE_URL (Repository Environment)")
+          else
+            FOUND_VARS+=("✓ EXPO_PUBLIC_TMDB_BASE_URL")
           fi
           
-          if [ -z "${{ secrets.EXPO_PUBLIC_TMDB_IMAGE_URL }}" ]; then
-            MISSING_VARS+=("EXPO_PUBLIC_TMDB_IMAGE_URL")
+          if [ -z "${{ vars.EXPO_PUBLIC_TMDB_IMAGE_URL }}" ]; then
+            MISSING_VARS+=("EXPO_PUBLIC_TMDB_IMAGE_URL (Repository Environment)")
+          else
+            FOUND_VARS+=("✓ EXPO_PUBLIC_TMDB_IMAGE_URL")
           fi
           
+          # Print found variables
+          echo ""
+          echo "Found variables:"
+          for var in "${FOUND_VARS[@]}"; do
+            echo "  $var"
+          done
+          
+          # Handle missing variables
           if [ ${#MISSING_VARS[@]} -gt 0 ]; then
-            echo "❌ BUILD FAILED: Missing required environment variables:"
+            echo ""
+            echo "❌ BUILD FAILED: Missing required variables:"
             for var in "${MISSING_VARS[@]}"; do
-              echo "   - $var"
+              echo "  ✗ $var"
             done
+            echo ""
+            echo "📋 Setup Instructions:"
+            echo "  1. Go to Settings → Environments → production"
+            echo "  2. Add missing variables to the 'Environment variables' section"
+            echo "  3. For EXPO_TOKEN: Add to Settings → Secrets and variables → Actions → Repository secrets"
             exit 1
           fi
           
-          echo "✅ All required environment variables are set"
+          echo ""
+          echo "✅ All required variables are set. Build proceeding..."
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
