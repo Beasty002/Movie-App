@@ -5,7 +5,7 @@
     "slug": "Votch",
     "version": "1.0.5",
     "orientation": "portrait",
-    "icon": "./assets/images/votch-icon.png",
+    "icon": "./assets/images/votchicon.png",
     "scheme": "votch",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -16,7 +16,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
-        "foregroundImage": "./assets/images/votch-icon.png"
+        "foregroundImage": "./assets/images/votchicon.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -41,14 +41,14 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/votch-icon.png"
+      "favicon": "./assets/images/votchicon.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/votch-icon.png",
+          "image": "./assets/images/votchicon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#0F172A",
