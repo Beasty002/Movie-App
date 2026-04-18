@@ -27,73 +27,21 @@ jobs:
 
       - name: Validate Environment Variables
         run: |
-          echo "🔍 Validating required environment variables..."
-          
-          MISSING_VARS=()
-          FOUND_VARS=()
-          
-          # Check Repository Secret
-          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
-            MISSING_VARS+=("EXPO_TOKEN (Repository Secret)")
-          else
-            FOUND_VARS+=("✓ EXPO_TOKEN")
-          fi
-          
-          # Check Repository Environment variables
-          if [ -z "${{ vars.EXPO_PUBLIC_SUPABASE_URL }}" ]; then
-            MISSING_VARS+=("EXPO_PUBLIC_SUPABASE_URL (Repository Environment)")
-          else
-            FOUND_VARS+=("✓ EXPO_PUBLIC_SUPABASE_URL")
-          fi
-          
-          if [ -z "${{ vars.EXPO_PUBLIC_SUPABASE_ANON_KEY }}" ]; then
-            MISSING_VARS+=("EXPO_PUBLIC_SUPABASE_ANON_KEY (Repository Environment)")
-          else
-            FOUND_VARS+=("✓ EXPO_PUBLIC_SUPABASE_ANON_KEY")
-          fi
-          
-          if [ -z "${{ vars.EXPO_PUBLIC_TMDB_API_KEY }}" ]; then
-            MISSING_VARS+=("EXPO_PUBLIC_TMDB_API_KEY (Repository Environment)")
-          else
-            FOUND_VARS+=("✓ EXPO_PUBLIC_TMDB_API_KEY")
-          fi
-          
-          if [ -z "${{ vars.EXPO_PUBLIC_TMDB_BASE_URL }}" ]; then
-            MISSING_VARS+=("EXPO_PUBLIC_TMDB_BASE_URL (Repository Environment)")
-          else
-            FOUND_VARS+=("✓ EXPO_PUBLIC_TMDB_BASE_URL")
-          fi
-          
-          if [ -z "${{ vars.EXPO_PUBLIC_TMDB_IMAGE_URL }}" ]; then
-            MISSING_VARS+=("EXPO_PUBLIC_TMDB_IMAGE_URL (Repository Environment)")
-          else
-            FOUND_VARS+=("✓ EXPO_PUBLIC_TMDB_IMAGE_URL")
-          fi
-          
-          # Print found variables
-          echo ""
-          echo "Found variables:"
-          for var in "${FOUND_VARS[@]}"; do
-            echo "  $var"
-          done
-          
-          # Handle missing variables
-          if [ ${#MISSING_VARS[@]} -gt 0 ]; then
-            echo ""
-            echo "❌ BUILD FAILED: Missing required variables:"
-            for var in "${MISSING_VARS[@]}"; do
-              echo "  ✗ $var"
-            done
-            echo ""
-            echo "📋 Setup Instructions:"
-            echo "  1. Go to Settings → Environments → production"
-            echo "  2. Add missing variables to the 'Environment variables' section"
-            echo "  3. For EXPO_TOKEN: Add to Settings → Secrets and variables → Actions → Repository secrets"
+          echo "Validating required environment variables..."
+          MISSING=()
+          [ -z "$EXPO_TOKEN" ] && MISSING+=("EXPO_TOKEN")
+          [ -z "$EXPO_PUBLIC_SUPABASE_URL" ] && MISSING+=("EXPO_PUBLIC_SUPABASE_URL")
+          [ -z "$EXPO_PUBLIC_SUPABASE_ANON_KEY" ] && MISSING+=("EXPO_PUBLIC_SUPABASE_ANON_KEY")
+          [ -z "$EXPO_PUBLIC_TMDB_API_KEY" ] && MISSING+=("EXPO_PUBLIC_TMDB_API_KEY")
+          [ -z "$EXPO_PUBLIC_TMDB_BASE_URL" ] && MISSING+=("EXPO_PUBLIC_TMDB_BASE_URL")
+          [ -z "$EXPO_PUBLIC_TMDB_IMAGE_URL" ] && MISSING+=("EXPO_PUBLIC_TMDB_IMAGE_URL")
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo "BUILD FAILED - missing values: ${MISSING[*]}"
+            echo "EXPO_TOKEN -> Settings -> Secrets and variables -> Actions -> Secrets"
+            echo "EXPO_PUBLIC_* -> Settings -> Secrets and variables -> Actions -> Variables -> Environment variables (production)"
             exit 1
           fi
-          
-          echo ""
-          echo "✅ All required variables are set. Build proceeding..."
+          echo "All required secrets are present."
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -117,14 +65,54 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}" > .env
-          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
-          echo "EXPO_PUBLIC_TMDB_API_KEY=${{ secrets.EXPO_PUBLIC_TMDB_API_KEY }}" >> .env
-          echo "EXPO_PUBLIC_TMDB_BASE_URL=${{ secrets.EXPO_PUBLIC_TMDB_BASE_URL }}" >> .env
-          echo "EXPO_PUBLIC_TMDB_IMAGE_URL=${{ secrets.EXPO_PUBLIC_TMDB_IMAGE_URL }}" >> .env
+          echo "EXPO_PUBLIC_SUPABASE_URL=${EXPO_PUBLIC_SUPABASE_URL}" > .env
+          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${EXPO_PUBLIC_SUPABASE_ANON_KEY}" >> .env
+          echo "EXPO_PUBLIC_TMDB_API_KEY=${EXPO_PUBLIC_TMDB_API_KEY}" >> .env
+          echo "EXPO_PUBLIC_TMDB_BASE_URL=${EXPO_PUBLIC_TMDB_BASE_URL}" >> .env
+          echo "EXPO_PUBLIC_TMDB_IMAGE_URL=${EXPO_PUBLIC_TMDB_IMAGE_URL}" >> .env
+
+      - name: Verify .env file
+        run: |
+          echo "Verifying .env file was created and all values are populated..."
+          if [ ! -f .env ]; then
+            echo ".env file was not created"
+            exit 1
+          fi
+          MISSING=()
+          get_env_val() { grep "^$1=" .env | cut -d'=' -f2-; }
+          [ -z "$(get_env_val EXPO_PUBLIC_SUPABASE_URL)" ]    && MISSING+=("EXPO_PUBLIC_SUPABASE_URL")
+          [ -z "$(get_env_val EXPO_PUBLIC_SUPABASE_ANON_KEY)" ] && MISSING+=("EXPO_PUBLIC_SUPABASE_ANON_KEY")
+          [ -z "$(get_env_val EXPO_PUBLIC_TMDB_API_KEY)" ]    && MISSING+=("EXPO_PUBLIC_TMDB_API_KEY")
+          [ -z "$(get_env_val EXPO_PUBLIC_TMDB_BASE_URL)" ]   && MISSING+=("EXPO_PUBLIC_TMDB_BASE_URL")
+          [ -z "$(get_env_val EXPO_PUBLIC_TMDB_IMAGE_URL)" ]  && MISSING+=("EXPO_PUBLIC_TMDB_IMAGE_URL")
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo ".env file has empty values for: ${MISSING[*]}"
+            echo "This means the GitHub Variables were empty when the .env was written."
+            exit 1
+          fi
+          echo ".env file verified — all 5 values are present."
 
       - name: Install dependencies
         run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Validate env var formats
+        run: |
+          if ! echo "$EXPO_PUBLIC_SUPABASE_URL" | grep -qE '^https://[a-zA-Z0-9.-]+\.supabase\.co$'; then
+            echo "EXPO_PUBLIC_SUPABASE_URL does not look like a valid Supabase URL: $EXPO_PUBLIC_SUPABASE_URL"
+            exit 1
+          fi
+          if ! echo "$EXPO_PUBLIC_TMDB_BASE_URL" | grep -qE '^https://'; then
+            echo "EXPO_PUBLIC_TMDB_BASE_URL must start with https://"
+            exit 1
+          fi
+          if ! echo "$EXPO_PUBLIC_TMDB_IMAGE_URL" | grep -qE '^https://'; then
+            echo "EXPO_PUBLIC_TMDB_IMAGE_URL must start with https://"
+            exit 1
+          fi
+          echo "All env var formats look correct."
 
       - name: Install Java
         uses: actions/setup-java@v4
