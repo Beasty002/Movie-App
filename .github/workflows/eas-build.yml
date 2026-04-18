@@ -25,6 +25,46 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Validate Environment Variables
+        run: |
+          echo "🔍 Validating required environment variables..."
+          
+          MISSING_VARS=()
+          
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            MISSING_VARS+=("EXPO_TOKEN")
+          fi
+          
+          if [ -z "${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}" ]; then
+            MISSING_VARS+=("EXPO_PUBLIC_SUPABASE_URL")
+          fi
+          
+          if [ -z "${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}" ]; then
+            MISSING_VARS+=("EXPO_PUBLIC_SUPABASE_ANON_KEY")
+          fi
+          
+          if [ -z "${{ secrets.EXPO_PUBLIC_TMDB_API_KEY }}" ]; then
+            MISSING_VARS+=("EXPO_PUBLIC_TMDB_API_KEY")
+          fi
+          
+          if [ -z "${{ secrets.EXPO_PUBLIC_TMDB_BASE_URL }}" ]; then
+            MISSING_VARS+=("EXPO_PUBLIC_TMDB_BASE_URL")
+          fi
+          
+          if [ -z "${{ secrets.EXPO_PUBLIC_TMDB_IMAGE_URL }}" ]; then
+            MISSING_VARS+=("EXPO_PUBLIC_TMDB_IMAGE_URL")
+          fi
+          
+          if [ ${#MISSING_VARS[@]} -gt 0 ]; then
+            echo "❌ BUILD FAILED: Missing required environment variables:"
+            for var in "${MISSING_VARS[@]}"; do
+              echo "   - $var"
+            done
+            exit 1
+          fi
+          
+          echo "✅ All required environment variables are set"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
