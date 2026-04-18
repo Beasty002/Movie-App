@@ -3,7 +3,7 @@
     "name": "Votch",
     "displayName": "Votch",
     "slug": "Votch",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/images/votch-icon.png",
     "scheme": "votch",

@@ -13,7 +13,7 @@ interface ImportState {
 
     // Methods
     importFromCSV: (source: ImportSource, csvContent: string, userId: string) => Promise<ImportResult>;
-    addMatchedItemsToWatchlist: (userId: string, items: ImportedItem[]) => Promise<void>;
+    addMatchedItemsToWatchlist: (userId: string, items: ImportedItem[]) => Promise<number>;
     clearImport: () => void;
 }
 
@@ -90,13 +90,16 @@ export const useImportStore = create<ImportState>((set, get) => ({
                 }
 
                 itemsToAdd.push({
-                    id: `temp-${Date.now()}-${i}`, // Will be replaced by server
+                    id: `temp-${Date.now()}-${i}`,
                     user_id: userId,
                     media_id: mediaId,
                     media_type: item.mediaType,
                     media_title: item.title,
+                    media_title_korean: null,
+                    media_poster: null,
+                    media_year: null,
+                    total_episodes: null,
                     status: item.status,
-                    poster_path: null,
                     rating: item.rating || null,
                     notes: item.notes || null,
                     created_at: new Date().toISOString(),
@@ -117,7 +120,7 @@ export const useImportStore = create<ImportState>((set, get) => ({
                             media_type: item.media_type,
                             media_title: item.media_title,
                             status: item.status,
-                            poster_path: item.poster_path,
+                            poster_path: item.media_poster,
                             rating: item.rating,
                             notes: item.notes,
                         }))

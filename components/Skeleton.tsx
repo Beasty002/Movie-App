@@ -33,8 +33,8 @@ export default function Skeleton({
         <Animated.View
             style={[
                 {
-                    width,
-                    height,
+                    width: width as number,
+                    height: height as number,
                     backgroundColor: '#221F3D',
                     borderRadius,
                 },

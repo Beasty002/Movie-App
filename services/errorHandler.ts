@@ -73,7 +73,7 @@ export function safePromise<T>(
 export function safeTimeout(
     callback: () => void | Promise<void>,
     ms: number
-): NodeJS.Timeout {
+): ReturnType<typeof setTimeout> {
     return setTimeout(async () => {
         try {
             await callback();

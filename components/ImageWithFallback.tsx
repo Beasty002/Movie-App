@@ -41,7 +41,7 @@ export default function ImageWithFallback({
             source={source}
             style={style}
             contentFit={contentFit}
-            placeholder={{ color: placeholderColor }}
+            placeholderContentFit="cover"
             onError={() => setError(true)}
         />
     );

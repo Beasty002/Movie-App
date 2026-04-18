@@ -2,7 +2,7 @@
 import { Alert } from 'react-native';
 
 const originalErrorHandler = ErrorUtils.getGlobalHandler();
-ErrorUtils.setGlobalHandler((error: Error, isFatal: boolean) => {
+ErrorUtils.setGlobalHandler((error: Error, isFatal?: boolean) => {
   console.error(
     '[GLOBAL ERROR]',
     'Message:',

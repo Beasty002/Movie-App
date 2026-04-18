@@ -1,4 +1,4 @@
-import votchIcon from "@/assets/images/votch-icon.jpg";
+import votchIcon from "@/assets/images/votch-icon.png";
 
 export const images = {
   votchIcon,

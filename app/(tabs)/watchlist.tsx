@@ -112,7 +112,6 @@ export default function WatchlistScreen() {
           Toast.show({
             type: 'success',
             text1: 'Removed from watchlist',
-            duration: 2000,
           });
         },
       },
@@ -136,7 +135,6 @@ export default function WatchlistScreen() {
           Toast.show({
             type: 'success',
             text1: `Status changed to ${statusLabels[s]}`,
-            duration: 2000,
           });
         },
       })),
@@ -270,7 +268,7 @@ export default function WatchlistScreen() {
               item={item}
               onPress={() => {
                 const route = item.media_type === 'movie' ? `/movie/${item.media_id}` : `/drama/${item.media_id}`;
-                router.push(route);
+                router.push(route as never);
               }}
               onLongPress={() => handleLongPress(item)}
             />

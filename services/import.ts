@@ -49,7 +49,7 @@ function parseCSV(content: string): ParsedCSVRow[] {
         // Simple CSV parsing - handles quoted values
         const values = lines[i].match(/(?:[^",]|"(?:(?="")|(?!$))"?)+/g)?.map(v => v.replace(/^"|"$/g, '').trim()) || [];
 
-        const row: ParsedCSVRow = {};
+        const row: ParsedCSVRow = { title: '', status: '' };
         headers.forEach((header, idx) => {
             row[header as keyof ParsedCSVRow] = values[idx];
         });
@@ -178,7 +178,7 @@ export function parseGenericCSV(content: string): ImportedItem[] {
         );
 
         return {
-            title: row[titleKey] || '',
+            title: (titleKey ? row[titleKey] : '') || '',
             mediaType: 'kdrama' as MediaType,
             status: 'planning' as WatchlistStatus,
         };

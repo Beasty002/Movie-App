@@ -178,27 +178,26 @@ export const useNotificationsStore = create<NotificationsStore>((set, get) => ({
     },
 
     subscribeToNewNotifications: (userId: string) => {
-        const subscription = supabase
-            .from('notifications')
-            .on('postgres_changes', {
+        const channel = supabase
+            .channel(`notifications:${userId}`)
+            .on('postgres_changes' as any, {
                 event: 'INSERT',
                 schema: 'public',
                 table: 'notifications',
                 filter: `user_id=eq.${userId}`,
-            }, (payload) => {
+            }, (payload: any) => {
                 const newNotification = payload.new as Notification;
                 set((state) => ({
                     notifications: [newNotification, ...state.notifications],
                     unreadCount: state.unreadCount + 1,
                 }));
 
-                // Update badge
                 get().unreadCount && setBadgeCount(get().unreadCount);
             })
             .subscribe();
 
         return () => {
-            subscription.unsubscribe();
+            channel.unsubscribe();
         };
     },
 

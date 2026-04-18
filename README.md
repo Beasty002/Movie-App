@@ -4,22 +4,44 @@ A React Native app built with Expo for tracking dramas, anime, and movies with t
 
 ## Setup
 
+### For Local Development
 1. Install dependencies
    ```bash
    npm install
    ```
 
-2. Create `.env.local` with Supabase and TMDB credentials:
+2. Create `.env` from `.env.example`:
+   ```bash
+   cp .env.example .env
    ```
-   EXPO_PUBLIC_SUPABASE_URL=your_url
-   EXPO_PUBLIC_SUPABASE_ANON_KEY=your_key
-   EXPO_PUBLIC_MOVIE_API_KEY=your_tmdb_key
+   Then fill in your actual values:
    ```
+   EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   EXPO_PUBLIC_TMDB_API_KEY=your_tmdb_api_key
+   EXPO_PUBLIC_TMDB_BASE_URL=https://api.themoviedb.org/3
+   EXPO_PUBLIC_TMDB_IMAGE_URL=https://image.tmdb.org/t/p
+   ```
+   ⚠️ **Never commit `.env` to git** — it's in `.gitignore`
 
 3. Start the app
    ```bash
    npm start
    ```
+
+### For Play Store Builds (via GitHub Actions)
+The app automatically builds and deploys via GitHub Actions when you push to `main`.
+
+**Required GitHub Secrets:**
+Set these in `Settings → Secrets and Variables → Actions → Repository Secrets`:
+- `EXPO_TOKEN` — Your Expo authentication token
+- `EXPO_PUBLIC_SUPABASE_URL` — Your Supabase project URL
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY` — Your Supabase anonymous key
+- `EXPO_PUBLIC_TMDB_API_KEY` — Your TMDB API key
+- `EXPO_PUBLIC_TMDB_BASE_URL` — `https://api.themoviedb.org/3`
+- `EXPO_PUBLIC_TMDB_IMAGE_URL` — `https://image.tmdb.org/t/p`
+
+**Build workflow:** `.github/workflows/eas-build.yml` (runs on `push` to `main` or manual trigger)
 
 ## Tech Stack
 - **Frontend:** React Native + Expo SDK 52 (Expo Router)

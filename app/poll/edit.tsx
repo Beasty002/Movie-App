@@ -22,7 +22,6 @@ import { useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
-    AlertIOS,
     FlatList,
     KeyboardAvoidingView,
     Platform,
@@ -88,8 +87,8 @@ export default function EditPollScreen() {
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [selectedTime, setSelectedTime] = useState<WatchTime | null>(null);
     const [useCustomDateTime, setUseCustomDateTime] = useState(false);
-    const [customDate, setCustomDate] = useState<Date>(new Date());
-    const [customTime, setCustomTime] = useState<Date>(new Date());
+    const [customDate, setCustomDate] = useState<string>('');
+    const [customTime, setCustomTime] = useState<string>('');
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [watchTogetherLink, setWatchTogetherLink] = useState('');
@@ -121,16 +120,10 @@ export default function EditPollScreen() {
             // Handle custom datetime
             if (currentPoll.watch_custom_time) {
                 setUseCustomDateTime(true);
-                // Parse HH:MM to Date object
-                const [hours, minutes] = currentPoll.watch_custom_time.split(':').map(Number);
-                const timeDate = new Date();
-                timeDate.setHours(hours || 0, minutes || 0, 0, 0);
-                setCustomTime(timeDate);
-
-                // Convert ISO date (YYYY-MM-DD) to Date object
+                setCustomTime(currentPoll.watch_custom_time);
                 if (currentPoll.watch_date) {
-                    const dateObj = new Date(currentPoll.watch_date);
-                    setCustomDate(dateObj);
+                    const [year, month, day] = currentPoll.watch_date.split('-');
+                    setCustomDate(`${month}/${day}/${year}`);
                 }
             }
 
@@ -198,12 +191,9 @@ export default function EditPollScreen() {
             };
             await suggestOption(currentPoll.id, option);
             setSearchQuery('');
-            // Show success message
-            const AlertType = Platform.OS === 'ios' ? AlertIOS : Alert;
-            AlertType.alert('Success', 'Option added to the poll!');
+            Alert.alert('Success', 'Option added to the poll!');
         } catch (error) {
-            const AlertType = Platform.OS === 'ios' ? AlertIOS : Alert;
-            AlertType.alert('Error', 'Could not add option. Please try again.');
+            Alert.alert('Error', 'Could not add option. Please try again.');
         }
     };
 
@@ -217,13 +207,13 @@ export default function EditPollScreen() {
             let finalWatchCustomTime: string | undefined;
 
             if (useCustomDateTime && customDate) {
-                // Convert MM/DD/YYYY to YYYY-MM-DD
                 const [month, day, year] = customDate.split('/');
                 if (month && day && year && year.length === 4) {
                     finalWatchDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
                 }
                 finalWatchTime = null;
                 finalWatchCustomTime = customTime || undefined;
+
             }
 
             await updatePoll(currentPoll.id, {
@@ -235,13 +225,11 @@ export default function EditPollScreen() {
                 watch_together_link: watchTogetherLink.trim() || undefined,
                 allow_suggestions: allowSuggestions,
             });
-            const AlertType = Platform.OS === 'ios' ? AlertIOS : Alert;
-            AlertType.alert('Success', 'Poll updated!', [
+            Alert.alert('Success', 'Poll updated!', [
                 { text: 'OK', onPress: () => router.back() },
             ]);
         } catch (error) {
-            const AlertType = Platform.OS === 'ios' ? AlertIOS : Alert;
-            AlertType.alert('Error', 'Could not save changes. Please try again.');
+            Alert.alert('Error', 'Could not save changes. Please try again.');
         } finally {
             setIsSaving(false);
         }

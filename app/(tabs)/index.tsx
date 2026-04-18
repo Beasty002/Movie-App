@@ -207,7 +207,7 @@ export default function HomeScreen() {
                   drama={item}
                   onPress={() => {
                     const route = item.media_type === 'movie' ? `/movie/${item.id}` : `/drama/${item.id}`;
-                    router.push(route);
+                    router.push(route as never);
                   }}
                   compact
                 />
@@ -235,7 +235,7 @@ export default function HomeScreen() {
                 key={item.id}
                 onPress={() => {
                   const route = item.media_type === 'movie' ? `/movie/${item.media_id}` : `/drama/${item.media_id}`;
-                  router.push(route);
+                  router.push(route as never);
                 }}
                 activeOpacity={0.8}
                 className="flex-row items-center p-3 mb-4 bg-dark-100 rounded-xl"

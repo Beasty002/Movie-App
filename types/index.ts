@@ -142,6 +142,23 @@ export interface WatchlistItem {
   media_year: number | null;
   total_episodes: number | null;
   status: WatchlistStatus;
+  rating?: number | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserPreferences {
+  id: string;
+  user_id: string;
+  notifications_enabled: boolean;
+  poll_notifications: boolean;
+  episode_notifications: boolean;
+  streak_reminders: boolean;
+  notify_poll_votes: boolean;
+  notify_poll_expiry: boolean;
+  notify_new_episodes: boolean;
+  language: string;
   created_at: string;
   updated_at: string;
 }

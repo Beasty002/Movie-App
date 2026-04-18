@@ -19,6 +19,8 @@ async function getNotifications() {
                     shouldShowAlert: true,
                     shouldPlaySound: true,
                     shouldSetBadge: true,
+                    shouldShowBanner: true,
+                    shouldShowList: true,
                 }),
             });
         } catch (error) {
@@ -126,6 +128,7 @@ export async function scheduleLocalNotification(
                 badge: 1,
             },
             trigger: {
+                type: 'time-interval' as const,
                 seconds: triggerSeconds,
             },
         });
