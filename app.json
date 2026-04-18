@@ -49,8 +49,8 @@
         "@sentry/react-native/expo",
         {
           "url": "https://sentry.io/",
-          "organization": "YOUR_SENTRY_ORG_SLUG",
-          "project": "YOUR_SENTRY_PROJECT_SLUG"
+          "organization": "beasty-g4",
+          "project": "votch"
         }
       ],
       [
