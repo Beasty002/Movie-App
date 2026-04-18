@@ -1,3 +1,50 @@
+// ⚠️ GLOBAL ERROR HANDLER - MUST BE AT TOP BEFORE OTHER IMPORTS
+import { Alert } from 'react-native';
+
+const originalErrorHandler = ErrorUtils.getGlobalHandler();
+ErrorUtils.setGlobalHandler((error: Error, isFatal: boolean) => {
+  console.error(
+    '[GLOBAL ERROR]',
+    'Message:',
+    error?.message || 'Unknown error',
+    'Fatal:',
+    isFatal,
+    'Stack:',
+    error?.stack || 'No stack'
+  );
+
+  // For fatal errors, show user-friendly alert
+  if (isFatal) {
+    Alert.alert(
+      'Application Error',
+      'An unexpected error occurred. Please restart the app.',
+      [
+        {
+          text: 'Restart',
+          onPress: () => {
+            // In a real app, you might trigger a restart here
+            originalErrorHandler(error, isFatal);
+          },
+        },
+      ],
+      { cancelable: false }
+    );
+  }
+
+  // Call original handler to maintain debug behaviors
+  originalErrorHandler(error, isFatal);
+});
+
+// ⚠️ PROMISE REJECTION HANDLER
+const unhandledRejectionHandler = (reason: any, promise: Promise<any>) => {
+  console.error('[UNHANDLED PROMISE REJECTION]', 'Reason:', reason, 'Promise:', promise);
+  // Treat as non-fatal but log for debugging
+};
+
+if (typeof global !== 'undefined') {
+  (global as any).onunhandledrejection = unhandledRejectionHandler;
+}
+
 import { GradientBackground } from '@/components/ui/GradientBackground';
 import { useAuthStore } from '@/store/useAuthStore';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

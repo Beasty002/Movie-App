@@ -1,16 +1,34 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
 import { supabase } from './supabase';
 
-// Configure how notifications behave when app is in foreground
-Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-    }),
-});
+// Lazy load Notifications to avoid crashes in Expo Go
+let Notifications: typeof import('expo-notifications') | null = null;
+let notificationsError: Error | null = null;
+
+async function getNotifications() {
+    if (notificationsError) {
+        throw notificationsError;
+    }
+    if (!Notifications) {
+        try {
+            Notifications = await import('expo-notifications');
+            // Configure how notifications behave when app is in foreground
+            Notifications.setNotificationHandler({
+                handleNotification: async () => ({
+                    shouldShowAlert: true,
+                    shouldPlaySound: true,
+                    shouldSetBadge: true,
+                }),
+            });
+        } catch (error) {
+            notificationsError = error instanceof Error ? error : new Error(String(error));
+            console.warn('[NOTIFICATIONS] expo-notifications not available in this environment:', notificationsError.message);
+            throw notificationsError;
+        }
+    }
+    return Notifications;
+}
 
 /**
  * Register for push notifications using Expo Notifications
@@ -30,12 +48,14 @@ export async function registerForPushNotifications(): Promise<string | null> {
             return null;
         }
 
+        const Notif = await getNotifications();
+
         // Request permissions
-        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        const { status: existingStatus } = await Notif.getPermissionsAsync();
         let finalStatus = existingStatus;
 
         if (existingStatus !== 'granted') {
-            const { status } = await Notifications.requestPermissionsAsync();
+            const { status } = await Notif.requestPermissionsAsync();
             finalStatus = status;
             await AsyncStorage.setItem(
                 'votch_push_permission_asked',
@@ -49,13 +69,13 @@ export async function registerForPushNotifications(): Promise<string | null> {
         }
 
         // Get Expo push token
-        const token = await Notifications.getExpoPushTokenAsync({
+        const token = await Notif.getExpoPushTokenAsync({
             projectId: 'votch', // From app.json
         });
 
         return token.data;
     } catch (error) {
-        console.error('Error registering for push notifications:', error);
+        console.error('[NOTIFICATIONS] Error registering for push notifications:', error);
         return null;
     }
 }
@@ -96,7 +116,8 @@ export async function scheduleLocalNotification(
     payload?: Record<string, unknown>
 ): Promise<string | null> {
     try {
-        const notificationId = await Notifications.scheduleNotificationAsync({
+        const Notif = await getNotifications();
+        const notificationId = await Notif.scheduleNotificationAsync({
             content: {
                 title,
                 body,
@@ -111,7 +132,7 @@ export async function scheduleLocalNotification(
 
         return notificationId;
     } catch (error) {
-        console.error('Error scheduling local notification:', error);
+        console.error('[NOTIFICATIONS] Error scheduling local notification:', error);
         return null;
     }
 }
@@ -121,9 +142,10 @@ export async function scheduleLocalNotification(
  */
 export async function cancelAllLocalNotifications(): Promise<void> {
     try {
-        await Notifications.cancelAllScheduledNotificationsAsync();
+        const Notif = await getNotifications();
+        await Notif.cancelAllScheduledNotificationsAsync();
     } catch (error) {
-        console.error('Error canceling notifications:', error);
+        console.error('[NOTIFICATIONS] Error canceling notifications:', error);
     }
 }
 
@@ -132,10 +154,11 @@ export async function cancelAllLocalNotifications(): Promise<void> {
  */
 export async function getBadgeCount(): Promise<number> {
     try {
-        const count = await Notifications.getBadgeCountAsync();
+        const Notif = await getNotifications();
+        const count = await Notif.getBadgeCountAsync();
         return count;
     } catch (error) {
-        console.error('Error getting badge count:', error);
+        console.error('[NOTIFICATIONS] Error getting badge count:', error);
         return 0;
     }
 }
@@ -145,9 +168,10 @@ export async function getBadgeCount(): Promise<number> {
  */
 export async function setBadgeCount(count: number): Promise<void> {
     try {
-        await Notifications.setBadgeCountAsync(count);
+        const Notif = await getNotifications();
+        await Notif.setBadgeCountAsync(count);
     } catch (error) {
-        console.error('Error setting badge count:', error);
+        console.error('[NOTIFICATIONS] Error setting badge count:', error);
     }
 }
 
@@ -156,9 +180,10 @@ export async function setBadgeCount(count: number): Promise<void> {
  */
 export async function clearBadge(): Promise<void> {
     try {
-        await Notifications.setBadgeCountAsync(0);
+        const Notif = await getNotifications();
+        await Notif.setBadgeCountAsync(0);
     } catch (error) {
-        console.error('Error clearing badge:', error);
+        console.error('[NOTIFICATIONS] Error clearing badge:', error);
     }
 }
 
@@ -169,24 +194,31 @@ export async function clearBadge(): Promise<void> {
 export function setupNotificationHandlers(
     navigationHandler: (payload: Record<string, unknown>) => void
 ) {
-    // Handle notification response (user taps on notification)
-    const subscription = Notifications.addNotificationResponseReceivedListener(
-        (response) => {
-            const payload = response.notification.request.content.data;
-            navigationHandler(payload);
-        }
-    );
+    // Lazy load and setup handlers
+    getNotifications()
+        .then((Notif) => {
+            // Handle notification response (user taps on notification)
+            const subscription = Notif.addNotificationResponseReceivedListener(
+                (response) => {
+                    const payload = response.notification.request.content.data;
+                    navigationHandler(payload);
+                }
+            );
 
-    // Handle foreground notifications (show banner while app is open)
-    const foregroundSubscription =
-        Notifications.addNotificationReceivedListener((notification) => {
-            // Notification is shown by setNotificationHandler above
+            // Handle foreground notifications (show banner while app is open)
+            const foregroundSubscription =
+                Notif.addNotificationReceivedListener((notification) => {
+                    // Notification is shown by setNotificationHandler above
+                });
+
+            return () => {
+                subscription.remove();
+                foregroundSubscription.remove();
+            };
+        })
+        .catch((error) => {
+            console.warn('[NOTIFICATIONS] Could not setup notification handlers:', error.message);
         });
-
-    return () => {
-        subscription.remove();
-        foregroundSubscription.remove();
-    };
 }
 
 /**
