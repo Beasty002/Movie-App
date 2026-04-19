@@ -2,7 +2,7 @@ import { GradientBackground } from '@/components/ui/GradientBackground';
 import { images } from '@/constants/images';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Link } from 'expo-router';
-import { Eye, EyeOff, Globe } from 'lucide-react-native';
+import { Eye, EyeOff } from 'lucide-react-native';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -19,17 +19,12 @@ export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { signIn, signInWithGoogle, isLoading, error, clearError } = useAuthStore();
+  const { signIn, isLoading, error, clearError } = useAuthStore();
 
   const handleSignIn = async () => {
     if (!email.trim() || !password.trim()) return;
     clearError();
     await signIn(email.trim(), password);
-  };
-
-  const handleGoogleSignIn = async () => {
-    clearError();
-    await signInWithGoogle();
   };
 
   return (
@@ -121,7 +116,7 @@ export default function SignIn() {
               <Globe size={20} color="#FFFFFF" />
               <Text className="text-white font-semibold">Continue with Google</Text>
             </TouchableOpacity>
-          </View> */
+          </View> */}
         </View>
 
         <View className="flex-row justify-center mt-8 gap-x-1">

@@ -2,7 +2,7 @@ import { GradientBackground } from '@/components/ui/GradientBackground';
 import { images } from '@/constants/images';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Link } from 'expo-router';
-import { Eye, EyeOff, Globe } from 'lucide-react-native';
+import { Eye, EyeOff } from 'lucide-react-native';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -23,7 +23,7 @@ export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
-  const { signUp, signInWithGoogle, isLoading, error, clearError } = useAuthStore();
+  const { signUp, isLoading, error, clearError } = useAuthStore();
 
   const handleSignUp = async () => {
     setLocalError(null);
@@ -45,12 +45,6 @@ export default function SignUp() {
     await signUp(email.trim(), password);
   };
 
-  const handleGoogleSignUp = async () => {
-    setLocalError(null);
-    clearError();
-    await signInWithGoogle();
-  };
-
   const displayError = localError ?? error;
 
   return (
@@ -66,10 +60,10 @@ export default function SignUp() {
       >
         <Image source={images.votchIcon} className="w-16 h-16 mx-auto mb-6 rounded-full" />
 
-        <Text className="text-3xl font-bold text-white text-center mb-2">
+        <Text className="mb-2 text-3xl font-bold text-center text-white">
           Create account
         </Text>
-        <Text className="text-light-200 text-center mb-8">
+        <Text className="mb-8 text-center text-light-200">
           Track dramas, anime, and movies
         </Text>
 
@@ -101,7 +95,7 @@ export default function SignUp() {
                 autoComplete="new-password"
               />
               <TouchableOpacity
-                className="absolute right-4 top-0 bottom-0 justify-center"
+                className="absolute top-0 bottom-0 justify-center right-4"
                 onPress={() => setShowPassword(v => !v)}
                 activeOpacity={0.7}
               >
@@ -125,7 +119,7 @@ export default function SignUp() {
                 autoComplete="new-password"
               />
               <TouchableOpacity
-                className="absolute right-4 top-0 bottom-0 justify-center"
+                className="absolute top-0 bottom-0 justify-center right-4"
                 onPress={() => setShowConfirmPassword(v => !v)}
                 activeOpacity={0.7}
               >
@@ -137,11 +131,11 @@ export default function SignUp() {
           </View>
 
           {displayError && (
-            <Text className="text-red-400 text-sm text-center">{displayError}</Text>
+            <Text className="text-sm text-center text-red-400">{displayError}</Text>
           )}
 
           <TouchableOpacity
-            className="bg-accent rounded-xl py-4 items-center mt-2"
+            className="items-center py-4 mt-2 bg-accent rounded-xl"
             onPress={handleSignUp}
             disabled={isLoading}
             activeOpacity={0.8}
@@ -149,15 +143,15 @@ export default function SignUp() {
             {isLoading ? (
               <ActivityIndicator color="#030014" />
             ) : (
-              <Text className="text-primary font-bold text-base">Create Account</Text>
+              <Text className="text-base font-bold text-primary">Create Account</Text>
             )}
           </TouchableOpacity>
 
           {/* Google Sign Up - Disabled for now */}
           {/* <View className="mt-6 mb-4">
-            <View className="flex-row items-center gap-x-3 mb-4">
+            <View className="flex-row items-center mb-4 gap-x-3">
               <View className="flex-1 h-px bg-dark-100" />
-              <Text className="text-light-200 text-xs">OR</Text>
+              <Text className="text-xs text-light-200">OR</Text>
               <View className="flex-1 h-px bg-dark-100" />
             </View>
 
@@ -168,16 +162,16 @@ export default function SignUp() {
               activeOpacity={0.8}
             >
               <Globe size={20} color="#FFFFFF" />
-              <Text className="text-white font-semibold">Sign up with Google</Text>
+              <Text className="font-semibold text-white">Sign up with Google</Text>
             </TouchableOpacity>
-          </View> */
+          </View> */}
         </View>
 
-        <View className="flex-row justify-center mt-8 gap-x-1 pb-8">
+        <View className="flex-row justify-center pb-8 mt-8 gap-x-1">
           <Text className="text-light-200">Already have an account?</Text>
           <Link href="/(auth)/sign-in" asChild>
             <TouchableOpacity>
-              <Text className="text-accent font-semibold">Sign In</Text>
+              <Text className="font-semibold text-accent">Sign In</Text>
             </TouchableOpacity>
           </Link>
         </View>
