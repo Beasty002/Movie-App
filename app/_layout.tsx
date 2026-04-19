@@ -134,32 +134,33 @@ function AuthGate() {
   return null;
 }
 
+function extractPollShareCode(url: string): string | null {
+  const parsed = Linking.parse(url);
+  if (parsed.scheme !== 'votch') return null;
+  // votch://poll/{shareCode} → hostname='poll', path='{shareCode}'
+  if (parsed.hostname === 'poll' && parsed.path) {
+    return parsed.path.replace(/^\//, '');
+  }
+  // fallback: votch://{host}/poll/{shareCode}
+  if (parsed.path?.startsWith('poll/')) {
+    return parsed.path.replace('poll/', '');
+  }
+  return null;
+}
+
 function DeepLinkHandler() {
   const router = useRouter();
 
   useEffect(() => {
-    // Handle deep links when app is already open
     const subscription = Linking.addEventListener('url', ({ url }) => {
-      const parsed = Linking.parse(url);
-      // votch://poll/{shareCode} → navigate to /poll/{shareCode}
-      if (parsed.scheme === 'votch' && parsed.path?.startsWith('poll/')) {
-        const shareCode = parsed.path.replace('poll/', '');
-        if (shareCode) {
-          router.push(`/poll/${shareCode}` as never);
-        }
-      }
+      const shareCode = extractPollShareCode(url);
+      if (shareCode) router.push(`/poll/${shareCode}` as never);
     });
 
-    // Handle deep link that opened the app (cold start)
     Linking.getInitialURL().then((url) => {
       if (!url) return;
-      const parsed = Linking.parse(url);
-      if (parsed.scheme === 'votch' && parsed.path?.startsWith('poll/')) {
-        const shareCode = parsed.path.replace('poll/', '');
-        if (shareCode) {
-          router.push(`/poll/${shareCode}` as never);
-        }
-      }
+      const shareCode = extractPollShareCode(url);
+      if (shareCode) router.push(`/poll/${shareCode}` as never);
     });
 
     return () => subscription.remove();
@@ -184,6 +185,7 @@ function RootLayout() {
           <Stack.Screen name="poll/create" options={{ headerShown: false }} />
           <Stack.Screen name="poll/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="poll/history" options={{ headerShown: false }} />
+          <Stack.Screen name="poll/edit" options={{ headerShown: false }} />
           <Stack.Screen name="genre/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="person/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="settings" options={{ headerShown: false }} />

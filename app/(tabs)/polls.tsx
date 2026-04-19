@@ -3,12 +3,13 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { usePollStore } from '@/store/usePollStore';
 import type { PollListItem } from '@/types';
 import { useRouter } from 'expo-router';
-import { Plus, Vote } from 'lucide-react-native';
-import { useCallback, useEffect, useState } from 'react';
+import { Hash, Plus, Vote, X } from 'lucide-react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FlatList,
   RefreshControl,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -61,6 +62,9 @@ export default function PollsScreen() {
     usePollStore();
   const [activeTab, setActiveTab] = useState<SubTab>('mine');
   const [refreshing, setRefreshing] = useState(false);
+  const [showCodeInput, setShowCodeInput] = useState(false);
+  const [codeValue, setCodeValue] = useState('');
+  const codeInputRef = useRef<TextInput>(null);
 
   const loadPolls = useCallback(async () => {
     if (!user) return;
@@ -95,21 +99,70 @@ export default function PollsScreen() {
     router.push('/poll/create' as never);
   };
 
+  const handleOpenCodeInput = () => {
+    setShowCodeInput(true);
+    setTimeout(() => codeInputRef.current?.focus(), 100);
+  };
+
+  const handleJoinByCode = () => {
+    const code = codeValue.trim();
+    if (!code) return;
+    setShowCodeInput(false);
+    setCodeValue('');
+    router.push(`/poll/${code}` as never);
+  };
+
   const currentData = activeTab === 'mine' ? myPolls : votedPolls;
 
   return (
     <View className="flex-1 bg-primary">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 pt-14 pb-4">
-        <Text className="text-white font-bold text-2xl">Polls</Text>
-        <TouchableOpacity
-          onPress={handleCreate}
-          activeOpacity={0.8}
-          className="flex-row items-center gap-x-1.5 bg-accent px-3 py-2 rounded-xl"
-        >
-          <Plus size={16} color="#030014" strokeWidth={2.5} />
-          <Text className="text-primary font-semibold text-sm">Create</Text>
-        </TouchableOpacity>
+      <View className="px-4 pt-14 pb-4">
+        <View className="flex-row items-center justify-between mb-3">
+          <Text className="text-white font-bold text-2xl">Polls</Text>
+          <View className="flex-row items-center gap-x-2">
+            <TouchableOpacity
+              onPress={handleOpenCodeInput}
+              activeOpacity={0.8}
+              className="flex-row items-center gap-x-1.5 bg-dark-100 px-3 py-2 rounded-xl"
+            >
+              <Hash size={15} color="#AB8BFF" strokeWidth={2.5} />
+              <Text className="text-accent font-semibold text-sm">Join</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleCreate}
+              activeOpacity={0.8}
+              className="flex-row items-center gap-x-1.5 bg-accent px-3 py-2 rounded-xl"
+            >
+              <Plus size={16} color="#030014" strokeWidth={2.5} />
+              <Text className="text-primary font-semibold text-sm">Create</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {showCodeInput && (
+          <View className="flex-row items-center gap-x-2 bg-dark-100 rounded-xl px-3 py-2">
+            <Hash size={15} color="#AB8BFF" strokeWidth={2} />
+            <TextInput
+              ref={codeInputRef}
+              value={codeValue}
+              onChangeText={setCodeValue}
+              placeholder="Enter poll code…"
+              placeholderTextColor="#4A5568"
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="go"
+              onSubmitEditing={handleJoinByCode}
+              className="flex-1 text-white text-sm py-0"
+            />
+            <TouchableOpacity onPress={handleJoinByCode} hitSlop={8}>
+              <Text className="text-accent font-semibold text-sm">Go</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { setShowCodeInput(false); setCodeValue(''); }} hitSlop={8}>
+              <X size={16} color="#A8B5DB" strokeWidth={2} />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       {/* Sub-tab toggle */}

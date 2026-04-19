@@ -2,7 +2,7 @@ import { GradientBackground } from '@/components/ui/GradientBackground';
 import { images } from '@/constants/images';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Link } from 'expo-router';
-import { Globe } from 'lucide-react-native';
+import { Eye, EyeOff, Globe } from 'lucide-react-native';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -20,6 +20,8 @@ export default function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const { signUp, signInWithGoogle, isLoading, error, clearError } = useAuthStore();
 
@@ -88,28 +90,50 @@ export default function SignUp() {
 
           <View>
             <Text className="text-light-200 text-sm mb-1.5">Password</Text>
-            <TextInput
-              className="bg-dark-100 text-white rounded-xl px-4 py-3.5 text-base"
-              placeholder="Min. 6 characters"
-              placeholderTextColor="#9CA4AB"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoComplete="new-password"
-            />
+            <View className="relative">
+              <TextInput
+                className="bg-dark-100 text-white rounded-xl px-4 pr-12 py-3.5 text-base"
+                placeholder="Min. 6 characters"
+                placeholderTextColor="#9CA4AB"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoComplete="new-password"
+              />
+              <TouchableOpacity
+                className="absolute right-4 top-0 bottom-0 justify-center"
+                onPress={() => setShowPassword(v => !v)}
+                activeOpacity={0.7}
+              >
+                {showPassword
+                  ? <EyeOff size={20} color="#9CA4AB" />
+                  : <Eye size={20} color="#9CA4AB" />}
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View>
             <Text className="text-light-200 text-sm mb-1.5">Confirm Password</Text>
-            <TextInput
-              className="bg-dark-100 text-white rounded-xl px-4 py-3.5 text-base"
-              placeholder="Repeat password"
-              placeholderTextColor="#9CA4AB"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-              autoComplete="new-password"
-            />
+            <View className="relative">
+              <TextInput
+                className="bg-dark-100 text-white rounded-xl px-4 pr-12 py-3.5 text-base"
+                placeholder="Repeat password"
+                placeholderTextColor="#9CA4AB"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showConfirmPassword}
+                autoComplete="new-password"
+              />
+              <TouchableOpacity
+                className="absolute right-4 top-0 bottom-0 justify-center"
+                onPress={() => setShowConfirmPassword(v => !v)}
+                activeOpacity={0.7}
+              >
+                {showConfirmPassword
+                  ? <EyeOff size={20} color="#9CA4AB" />
+                  : <Eye size={20} color="#9CA4AB" />}
+              </TouchableOpacity>
+            </View>
           </View>
 
           {displayError && (
@@ -129,8 +153,8 @@ export default function SignUp() {
             )}
           </TouchableOpacity>
 
-          {/* Google Sign Up */}
-          <View className="mt-6 mb-4">
+          {/* Google Sign Up - Disabled for now */}
+          {/* <View className="mt-6 mb-4">
             <View className="flex-row items-center gap-x-3 mb-4">
               <View className="flex-1 h-px bg-dark-100" />
               <Text className="text-light-200 text-xs">OR</Text>
@@ -146,7 +170,7 @@ export default function SignUp() {
               <Globe size={20} color="#FFFFFF" />
               <Text className="text-white font-semibold">Sign up with Google</Text>
             </TouchableOpacity>
-          </View>
+          </View> */
         </View>
 
         <View className="flex-row justify-center mt-8 gap-x-1 pb-8">
